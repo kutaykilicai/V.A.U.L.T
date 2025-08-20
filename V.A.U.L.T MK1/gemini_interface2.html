@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini - Vault Protocol</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;700&display=swap');
+
+        :root {
+            --primary-color: #00e5ff; /* Glowing Cyan */
+            --secondary-color: #a8b2d1; /* Light Slate */
+            --dark-bg: #020c1b; /* Dark Navy */
+            --panel-bg: rgba(10, 25, 47, 0.85); /* Translucent Panel BG */
+            --border-glow: 0 0 5px rgba(0, 229, 255, 0.8), 0 0 10px rgba(0, 229, 255, 0.6);
+            --text-glow: 0 0 4px var(--primary-color);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: var(--dark-bg);
+            color: var(--secondary-color);
+            background-image:
+                linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+            background-size: 25px 25px;
+        }
+
+        .hud-container {
+            width: 100vw;
+            height: 100vh;
+            padding: 15px;
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            grid-template-rows: 80px 1fr 160px;
+            gap: 15px;
+            position: relative;
+        }
+
+        .widget-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--primary-color);
+            box-shadow: var(--border-glow);
+            padding: 15px;
+            overflow: hidden;
+            position: relative;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        
+        .widget-panel::before, .widget-panel::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-style: solid;
+            border-color: var(--primary-color);
+            z-index: 2;
+        }
+
+        .widget-panel::before {
+            top: -2px;
+            left: -2px;
+            border-width: 2px 0 0 2px;
+        }
+
+        .widget-panel::after {
+            bottom: -2px;
+            right: -2px;
+            border-width: 0 2px 2px 0;
+        }
+
+        .widget-title {
+            color: var(--primary-color);
+            text-shadow: var(--text-glow);
+            margin-bottom: 10px;
+            font-size: 1em;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.3);
+            padding-bottom: 5px;
+        }
+
+        #header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.2em;
+            letter-spacing: 8px;
+        }
+        
+        #header h1 {
+            color: #fff;
+            text-shadow: var(--text-glow);
+        }
+
+        #system-status { grid-column: 1; grid-row: 2; }
+        #system-status p { font-size: 0.9em; margin-bottom: 8px; }
+        #system-status .status-ok { color: #00ff80; font-weight: bold; }
+
+        #chat-panel { 
+            grid-column: 2; 
+            grid-row: 2 / 4;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-history {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            margin-bottom: 15px;
+        }
+        
+        .chat-message {
+            margin-bottom: 15px;
+            max-width: 95%;
+        }
+
+        .user-message .sender { color: #fff; font-weight: bold;}
+        .user-message .text { color: var(--secondary-color); padding-left: 10px; }
+        
+        .gemini-message .sender { color: var(--primary-color); text-shadow: var(--text-glow); font-weight: bold;}
+        .gemini-message .text { color: #fff; padding-left: 10px;}
+
+        #chat-form {
+            display: flex;
+            height: 40px;
+        }
+
+        #chat-input {
+            flex-grow: 1;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--primary-color);
+            color: #fff;
+            padding: 10px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1em;
+            outline: none;
+        }
+        
+        #chat-input:focus {
+             box-shadow: var(--border-glow);
+        }
+
+        #send-button {
+            background: var(--primary-color);
+            border: none;
+            color: var(--dark-bg);
+            padding: 0 20px;
+            font-family: 'Roboto Mono', monospace;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #data-analysis { grid-column: 3; grid-row: 2; }
+        .bar-chart { display: flex; align-items: flex-end; justify-content: space-around; height: calc(100% - 40px); }
+        .bar { width: 18px; background-color: var(--primary-color); box-shadow: var(--text-glow); animation: bar-level 3s infinite ease-in-out; }
+
+        #core-module { 
+            grid-column: 1; 
+            grid-row: 3; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .core {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+            position: relative;
+            animation: pulse 4s infinite ease-in-out;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+        }
+        .core::before, .core::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid var(--primary-color);
+        }
+        .core::before { width: 75%; height: 75%; animation: rotate 10s linear infinite; }
+        .core::after { width: 50%; height: 50%; animation: rotate 7s linear infinite reverse; }
+
+        #quick-actions { grid-column: 3; grid-row: 3; }
+        #quick-actions button {
+            display: block;
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+        #quick-actions button:hover {
+            background: var(--primary-color);
+            color: var(--dark-bg);
+            text-shadow: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 10px 20px rgba(0, 229, 255, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 229, 255, 0); }
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes bar-level {
+            0%, 100% { transform: scaleY(0.2); }
+            50% { transform: scaleY(1); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="hud-container">
+        <header id="header" class="widget-panel">
+            <h1>V A U L T</h1>
+        </header>
+
+        <div id="system-status" class="widget-panel">
+            <h2 class="widget-title">SYSTEM STATUS</h2>
+            <p>Vault Protocol: <span class="status-ok">ACTIVE</span></p>
+            <p>Data Core Sync: <span class="status-ok">STABLE</span></p>
+            <p>Quantum Link: <span class="status-ok">ESTABLISHED</span></p>
+            <p>System Time: <span id="system-time"></span></p>
+        </div>
+
+        <div id="chat-panel" class="widget-panel">
+            <h2 class="widget-title">COMMUNICATION INTERFACE</h2>
+            <div id="chat-history">
+                <div class="chat-message gemini-message">
+                    <p><span class="sender">[VAULT]:</span></p>
+                    <p class="text">Depo açık. Sorgunuz bekleniyor.</p>
+                </div>
+            </div>
+            <form id="chat-form">
+                <input type="text" id="chat-input" placeholder="İstem girin..." autocomplete="off">
+                <button type="submit" id="send-button">Gönder</button>
+            </form>
+        </div>
+
+        <div id="data-analysis" class="widget-panel">
+            <h2 class="widget-title">REAL-TIME ANALYSIS</h2>
+            <div class="bar-chart">
+                 <div class="bar" style="animation-delay: 0s;"></div>
+                 <div class="bar" style="animation-delay: 0.2s;"></div>
+                 <div class="bar" style="animation-delay: 0.4s;"></div>
+                 <div class="bar" style="animation-delay: 0.1s;"></div>
+                 <div class="bar" style="animation-delay: 0.5s;"></div>
+                 <div class="bar" style="animation-delay: 0.3s;"></div>
+                 <div class="bar" style="animation-delay: 0.2s;"></div>
+            </div>
+        </div>
+
+        <div id="core-module" class="widget-panel">
+            <h2 class="widget-title">AI CORE</h2>
+            <div class="core"></div>
+        </div>
+
+        <div id="quick-actions" class="widget-panel">
+            <h2 class="widget-title">QUICK ACTIONS</h2>
+            <button>Run Diagnostics</button>
+            <button>Access Archives</button>
+            <button>Toggle World View</button>
+        </div>
+    </div>
+
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatHistory = document.getElementById('chat-history');
+        const timeElement = document.getElementById('system-time');
+
+        // Basic chat functionality
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const userText = chatInput.value.trim();
+            if (userText === '') return;
+
+            appendMessage('User', userText);
+            chatInput.value = '';
+
+            // Simulate Gemini response
+            setTimeout(() => {
+                const vaultResponse = "İstem alınıyor... İşleniyor...";
+                appendMessage('[VAULT]', vaultResponse);
+            }, 800);
+        });
+
+        function appendMessage(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-message');
+            
+            if (sender === 'User') {
+                messageDiv.classList.add('user-message');
+            } else {
+                messageDiv.classList.add('gemini-message');
+            }
+
+            const senderP = document.createElement('p');
+            senderP.classList.add('sender');
+            senderP.textContent = sender + ':';
+
+            const textP = document.createElement('p');
+            textP.classList.add('text');
+            textP.textContent = text;
+            
+            messageDiv.appendChild(senderP);
+            messageDiv.appendChild(textP);
+            chatHistory.appendChild(messageDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight; // Auto-scroll
+        }
+        
+        // Update system time
+        function updateTime() {
+            const now = new Date();
+            timeElement.textContent = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+    </script>
+
+</body>
+</html>
