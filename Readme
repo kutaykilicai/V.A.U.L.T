@@ -1,468 +1,109 @@
-# 🤖 V.A.U.L.T
-
 <div align="center">
 
-![V.A.U.L.T Header](https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=0,1,2,3&height=250&section=header&text=V.A.U.L.T&fontSize=80&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Virtual%20Assistant%20%26%20Universal%20Learning%20Tool&descAlignY=58&descAlign=62)
+# 🛡️ V.A.U.L.T
 
-[![Typing SVG](https://readme-typing-svg.herokuapp.com?font=Orbitron&size=20&duration=3000&pause=1000&color=00D4FF&center=true&vCenter=true&multiline=true&width=600&height=80&lines=🚀+Advanced+AI+Assistant+System;🧠+Machine+Learning+Powered;⚡+Intelligent+Task+Automation)](https://git.io/typing-svg)
+**Your Personal AI-Powered Assistant & Automation Hub**  
+_Modular projects, tools and iterations (MARK series) all in one place_
 
-<p align="center">
-  <img src="https://img.shields.io/badge/🤖_AI-Powered-00D4FF?style=for-the-badge&logoColor=white" />
-  <img src="https://img.shields.io/badge/📊_Status-Active-00FF7F?style=for-the-badge&logoColor=white" />
-  <img src="https://img.shields.io/badge/🔢_Version-MK9-FF6B35?style=for-the-badge&logoColor=white" />
-  <img src="https://img.shields.io/badge/🐍_Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white" />
-</p>
+[![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge)](#)
+[![License](https://img.shields.io/badge/License-MIT-lightgrey?style=for-the-badge)](#license)
+[![Made with](https://img.shields.io/badge/Made%20with-HTML%20%7C%20Python%20%7C%20JS-blue?style=for-the-badge)](#technologies)
 
-<p align="center">
-  <a href="#-overview">Overview</a> •
-  <a href="#-features">Features</a> •
-  <a href="#-versions">Versions</a> •
-  <a href="#-installation">Installation</a> •
-  <a href="#-usage">Usage</a> •
-  <a href="#-roadmap">Roadmap</a>
-</p>
+</div>
 
 ---
 
-</div>
+## 📖 About
 
-## 🌟 Overview
+**V.A.U.L.T** (Virtualized Automated Utility & Logic Tool) is a collection of experimental projects and iterations  
+aimed at building a **Jarvis-like assistant** for automation, productivity, and experimentation.  
 
-**V.A.U.L.T** (Virtual Assistant & Universal Learning Tool) represents the next generation of AI-powered personal assistants. Built with advanced machine learning algorithms and natural language processing capabilities, V.A.U.L.T evolves through multiple iterations to provide increasingly sophisticated assistance for daily tasks, workflow automation, and intelligent decision-making.
+Each iteration (`MARK2`, `MARK3`, … `MARK9`) represents improvements and new features — from simple scripts  
+to more complex AI-assisted workflows.
 
-<div align="center">
-
-```ascii
-╭────────────────────────────────────────╮
-│  🎯  Intelligent Task Management       │
-│  🗣️   Natural Language Processing      │  
-│  🧠  Machine Learning Integration      │
-│  ⚡  Real-time Response System         │
-│  🔧  Modular Architecture              │
-╰────────────────────────────────────────╯
-```
-
-</div>
-
-### ✨ What Makes V.A.U.L.T Special?
-
-<div align="center">
-
-<table>
-<tr>
-<td align="center"><b>🤖 Smart AI</b><br/>Advanced NLP & Context Understanding</td>
-<td align="center"><b>⚡ Fast Response</b><br/>Optimized Processing Pipeline</td>
-<td align="center"><b>🔒 Secure</b><br/>Privacy-First Architecture</td>
-<td align="center"><b>🔧 Modular</b><br/>Extensible Plugin System</td>
-</tr>
-</table>
-
-</div>
+---
 
 ## 🚀 Features
+- Modular design — projects separated by MARK versions
+- Automation scripts (job applications, productivity tools, system helpers)
+- AI-enhanced experiments
+- Scalable structure for future iterations
 
-### 🎯 **Core Capabilities**
+---
 
-```yaml
-V.A.U.L.T Core Features:
-  AI Engine:
-    - Natural Language Understanding
-    - Context-Aware Responses
-    - Learning from Interactions
-    - Multi-Model Integration
-
-  Task Management:
-    - Intelligent Scheduling
-    - Priority-Based Organization
-    - Automated Reminders
-    - Workflow Optimization
-
-  Integration:
-    - REST API Support
-    - Plugin Architecture
-    - Third-Party Services
-    - Cross-Platform Sync
-
-  Security:
-    - End-to-End Encryption
-    - Data Anonymization
-    - Secure Authentication
-    - Privacy Protection
-```
-
-### 📊 **Performance Metrics**
-
-<div align="center">
-
-| Metric | MK1-MK3 | MK4-MK6 | MK7-MK9 |
-|:------:|:-------:|:-------:|:-------:|
-| **Response Time** | ~200ms | ~120ms | ~85ms |
-| **Accuracy** | 87% | 93% | 96% |
-| **Features** | Basic | Enhanced | Advanced |
-| **Stability** | Beta | Stable | Production |
-
-</div>
-
-## 🔄 Versions
-
-V.A.U.L.T has evolved through multiple iterations, each bringing significant improvements and new capabilities:
-
-<div align="center">
-
-### 📈 Evolution Timeline
-
-```mermaid
-gitgraph
-    commit id: "MK1: Foundation"
-    commit id: "MK2: Core AI"
-    commit id: "MK3: Basic NLP"
-    branch development
-    commit id: "MK4: Enhanced AI"
-    commit id: "MK5: Web Interface"
-    commit id: "MK6: API Integration"
-    checkout main
-    merge development
-    commit id: "MK7: Advanced ML"
-    commit id: "MK8: Performance"
-    commit id: "MK9: Production Ready"
-```
-
-</div>
-
-### 📁 Version Structure
-
-<div align="center">
-
-| Version | Status | Key Features | Use Case |
-|:-------:|:------:|:-------------|:---------|
-| **MK1-MK3** | 🟢 Stable | Foundation, Core AI, Basic NLP | Learning & Development |
-| **MK4-MK6** | 🟢 Production | Enhanced AI, Web UI, API | General Use |
-| **MK7-MK9** | 🚀 Latest | Advanced ML, Performance, Production | Professional Use |
-
-</div>
-
+## 📂 Project Structure
 ```
 V.A.U.L.T/
-├── 📁 V.A.U.L.T MK1/     # Foundation Version
-├── 📁 V.A.U.L.T MK2/     # Core AI Implementation  
-├── 📁 V.A.U.L.T MK3/     # Basic NLP Features
-├── 📁 V.A.U.L.T MK4/     # Enhanced AI Capabilities
-├── 📁 V.A.U.L.T MK5/     # Web Interface Integration
-├── 📁 V.A.U.L.T MK6/     # API & External Services
-├── 📁 V.A.U.L.T MK7/     # Advanced Machine Learning
-├── 📁 V.A.U.L.T MK8/     # Performance Optimization
-├── 📁 V.A.U.L.T MK9/     # Production Release
-└── 📄 README.md          # This file
+├─ V.A.U.L.T MK2
+├─ V.A.U.L.T MK3
+├─ V.A.U.L.T MARK4
+├─ V.A.U.L.T MARK5
+├─ V.A.U.L.T MARK6
+├─ V.A.U.L.T MARK7
+├─ V.A.U.L.T MARK8
+├─ V.A.U.L.T MARK9
+├─ JARVIS PROJESI
+├─ VAULT PROJESI
+└─ Otomatik iş başvuru
 ```
 
-## 🛠️ Tech Stack
+> Each MARK folder contains a different iteration of the project.  
+> Future releases will unify these into a more cohesive assistant.
 
-<div align="center">
+---
 
-### **Backend Technologies**
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=for-the-badge&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+## 🛠️ Technologies
+- **Languages:** Python, JavaScript, HTML, CSS
+- **Tools:** GitHub Pages, Node.js (optional), CLI automation
+- **Extras:** Shields.io badges, modular configs
 
-### **AI/ML Framework**
-![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
-![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
-![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)
-![Hugging Face](https://img.shields.io/badge/🤗_Hugging_Face-FFD21E?style=for-the-badge&logoColor=black)
+---
 
-### **Development Tools**
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
-![VS Code](https://img.shields.io/badge/VS_Code-0078d4?style=for-the-badge&logo=visual-studio-code&logoColor=white)
-
-</div>
-
-## 🚀 Installation
-
-### **⚡ Quick Start**
-
-Choose your preferred version and get started:
+## 📦 Getting Started
+Clone the repository and explore any MARK iteration:
 
 ```bash
-# Clone the repository
 git clone https://github.com/kutaykilicai/V.A.U.L.T.git
 cd V.A.U.L.T
-
-# Choose your version (recommended: MK9)
-cd "V.A.U.L.T MK9"
-
-# Setup environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Initialize V.A.U.L.T
-python vault.py --init
 ```
 
-### **🐳 Docker Setup**
-
+To run an iteration (example for `Otomatik iş başvuru`):
 ```bash
-# Using Docker Compose (if available)
-docker-compose up -d
-
-# Or build manually
-docker build -t vault:mk9 .
-docker run -p 8000:8000 vault:mk9
+cd "Otomatik iş başvuru"
+python main.py --help
 ```
 
-### **📋 System Requirements**
+---
 
-<div align="center">
+## 📌 Roadmap
+- [ ] Standardize structure across MARK iterations
+- [ ] Add environment configuration (`.env`)
+- [ ] Improve documentation per sub-project
+- [ ] Add screenshots and usage demos
+- [ ] Publish selected modules as standalone packages
 
-| Component | Minimum | Recommended |
-|:---------:|:-------:|:-----------:|
-| **OS** | Windows 10, macOS 10.15, Ubuntu 18.04+ | Latest versions |
-| **Python** | 3.8+ | 3.9+ |
-| **RAM** | 4GB | 8GB+ |
-| **Storage** | 2GB | 5GB+ |
-| **GPU** | Optional | CUDA-compatible (for ML features) |
-
-</div>
-
-## 💻 Usage
-
-### **🖥️ Command Line Interface**
-
-```bash
-# Start V.A.U.L.T
-python vault.py
-
-# Interactive mode
-python vault.py --interactive
-
-# Specific version
-python vault.py --version MK9
-
-# Configuration
-python vault.py --config
-```
-
-### **🐍 Python Integration**
-
-```python
-from vault import VAULT
-
-# Initialize V.A.U.L.T
-assistant = VAULT(version="MK9")
-
-# Basic interaction
-response = assistant.process("What's on my schedule today?")
-print(f"🤖 V.A.U.L.T: {response}")
-
-# Task management
-task = assistant.create_task({
-    "title": "Project Review Meeting",
-    "time": "14:00",
-    "priority": "high",
-    "auto_remind": True
-})
-
-# Enable learning mode
-assistant.set_learning_mode(True)
-```
-
-### **🌐 API Usage**
-
-```bash
-# Health check
-curl -X GET "http://localhost:8000/health"
-
-# Chat endpoint
-curl -X POST "http://localhost:8000/api/chat" \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Hello V.A.U.L.T!", "version": "MK9"}'
-
-# Task creation
-curl -X POST "http://localhost:8000/api/tasks" \
-  -H "Content-Type: application/json" \
-  -d '{"title": "New Task", "priority": "medium"}'
-```
-
-## 🎯 Roadmap
-
-<div align="center">
-
-### **🗺️ Development Timeline**
-
-```mermaid
-timeline
-    title V.A.U.L.T Development Journey
-    
-    2024 Q1-Q2 : MK1-MK3 Foundation
-               : Basic AI functionality
-               : Core NLP implementation
-               : Command-line interface
-               
-    2024 Q2-Q3 : MK4-MK6 Enhancement
-               : Enhanced AI capabilities
-               : Web interface development
-               : API integration layer
-               
-    2024 Q3-Q4 : MK7-MK9 Advanced
-               : Advanced machine learning
-               : Performance optimization
-               : Production deployment
-               
-    2025 Q1    : Next Generation
-               : Voice interaction
-               : Mobile application
-               : Enterprise features
-```
-
-</div>
-
-### **🚀 Upcoming Features**
-
-<div align="center">
-
-| Feature | Priority | Status | ETA |
-|:--------|:--------:|:------:|:----|
-| 🎤 **Voice Commands** | High | 🚧 In Progress | Q1 2025 |
-| 📱 **Mobile App** | High | 🔄 Planning | Q1 2025 |
-| 🌍 **Multi-Language** | Medium | 💡 Research | Q2 2025 |
-| 🤝 **Team Collaboration** | Medium | 💡 Concept | Q2 2025 |
-| 🏢 **Enterprise Edition** | Low | 💡 Idea | Q3 2025 |
-
-</div>
-
-## 📊 Performance & Analytics
-
-<div align="center">
-
-### **📈 Benchmark Results**
-
-| Version | Startup Time | Memory Usage | Response Time | Accuracy |
-|:-------:|:------------:|:------------:|:-------------:|:--------:|
-| MK1-MK3 | ~3.2s | ~150MB | ~200ms | 87% |
-| MK4-MK6 | ~2.8s | ~180MB | ~120ms | 93% |
-| MK7-MK9 | ~2.1s | ~220MB | ~85ms | 96% |
-
-</div>
-
-```mermaid
-graph TD
-    A[User Input] --> B[Input Processor]
-    B --> C[NLP Engine]
-    C --> D[Context Analyzer]
-    D --> E[AI Model]
-    E --> F[Response Generator]
-    F --> G[Output Formatter]
-    G --> H[User Response]
-    
-    style A fill:#00D4FF,stroke:#333,color:#fff
-    style E fill:#FF6B35,stroke:#333,color:#fff
-    style H fill:#00FF7F,stroke:#333,color:#fff
-```
+---
 
 ## 🤝 Contributing
+Pull requests are welcome!  
+For major changes, please open an issue first to discuss what you would like to change.
 
-We welcome contributions to make V.A.U.L.T even better! Here's how you can help:
+---
 
-### **🔄 Contribution Process**
+## 📫 Contact
+**Kutay Kılıç**  
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-KutayKılıç-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/kutay-kilic/)  
+[![GitHub](https://img.shields.io/badge/GitHub-kutaykilicai-black?style=flat&logo=github)](https://github.com/kutaykilicai)
 
-<div align="center">
+---
 
-```mermaid
-graph LR
-    A[🍴 Fork] --> B[🔧 Code]
-    B --> C[✅ Test]
-    C --> D[📝 Document]
-    D --> E[🚀 PR]
-    E --> F[👀 Review]
-    F --> G[🎉 Merge]
-```
-
-</div>
-
-### **💡 Ways to Contribute**
-
-- 🐛 **Bug Reports** - Found an issue? Let us know!
-- ✨ **Feature Requests** - Have an idea? Share it with us!
-- 📝 **Documentation** - Help improve our docs
-- 🔧 **Code Contributions** - Submit pull requests
-- 🧪 **Testing** - Help us test new features
-
-### **📋 Development Guidelines**
-
-```bash
-# Setup development environment
-git clone https://github.com/kutaykilicai/V.A.U.L.T.git
-cd V.A.U.L.T
-
-# Install development dependencies
-pip install -r requirements-dev.txt
-
-# Run tests
-python -m pytest tests/
-
-# Code formatting
-black . && flake8 . && mypy .
-```
-
-## 📄 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-<div align="center">
-
-```
-MIT License © 2024 Kutay Kılıç
-Permission is hereby granted, free of charge, to any person obtaining a copy...
-```
-
-</div>
-
-## 🌟 Acknowledgments
-
-Special thanks to:
-- 🤖 **OpenAI** for AI model inspiration
-- 🐍 **Python Community** for excellent libraries
-- 🧠 **Machine Learning Researchers** for foundational work
-- 👥 **Contributors** who help make V.A.U.L.T better
-
-## 📞 Contact & Support
-
-<div align="center">
-
-### **👨‍💻 Kutay Kılıç**
-*Creator & Lead Developer*
-
-<br>
-
-[![Portfolio](https://img.shields.io/badge/🌐_Portfolio-Visit-00D4FF?style=for-the-badge&logo=vercel&logoColor=white)](https://kutaykilicai.github.io/Kutay-portfolio.github.io/)
-[![LinkedIn](https://img.shields.io/badge/💼_LinkedIn-Connect-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/kutay-kilic)
-[![GitHub](https://img.shields.io/badge/👨‍💻_GitHub-Follow-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/kutaykilicai)
-[![Email](https://img.shields.io/badge/📧_Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:kutaykilic@example.com)
-
-<br>
-
-### **🆘 Get Help**
-
-[![Issues](https://img.shields.io/badge/🐛_Issues-Report-orange?style=for-the-badge&logo=github)](https://github.com/kutaykilicai/V.A.U.L.T/issues)
-[![Discussions](https://img.shields.io/badge/💬_Discussions-Join-purple?style=for-the-badge&logo=github)](https://github.com/kutaykilicai/V.A.U.L.T/discussions)
-[![Wiki](https://img.shields.io/badge/📚_Wiki-Read-blue?style=for-the-badge&logo=github)](https://github.com/kutaykilicai/V.A.U.L.T/wiki)
-
-</div>
+## 📜 License
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <div align="center">
 
-![Footer](https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=0,1,2,3&height=150&section=footer&animation=fadeIn)
-
-### **⭐ If you find V.A.U.L.T useful, please consider giving it a star! ⭐**
-
-<sub>Made with ❤️ and 🤖 by [Kutay Kılıç](https://github.com/kutaykilicai) | © 2024 V.A.U.L.T Project</sub>
-
-**`"The Future of AI Assistance - Today"`**
+⭐️ If you find V.A.U.L.T useful, consider giving it a star!  
 
 </div>
