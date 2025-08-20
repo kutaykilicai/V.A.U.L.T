@@ -1,0 +1,2 @@
+set GEMINI_API_KEY="GEMINI_API_KEY_BURAYA"
+n8n start
