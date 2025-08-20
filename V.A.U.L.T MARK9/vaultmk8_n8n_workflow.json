@@ -77,7 +77,7 @@
       "typeVersion": 1, 
       "position": [680, 220] 
     },
-    { "parameters": { "requestMethod": "POST", "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyBsj2K7ypQ4D4-iCIbnorH9S2NRUv-2AnQ", "sendHeaders": true, "specifyHeaders": "keypair", "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] }, "sendBody": true, "contentType": "json", "jsonBody": "={{ { \"contents\": [{ \"parts\": [{ \"text\": $json.prompt }] }] } }}", "options": {} }, "id": "gemini-api-mk9", "name": "🧠 Gemini API Call", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4, "position": [850, 220] },
+    { "parameters": { "requestMethod": "POST", "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key="apikeyinizigirin"-iCIbnorH9S2NRUv-2AnQ", "sendHeaders": true, "specifyHeaders": "keypair", "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] }, "sendBody": true, "contentType": "json", "jsonBody": "={{ { \"contents\": [{ \"parts\": [{ \"text\": $json.prompt }] }] } }}", "options": {} }, "id": "gemini-api-mk9", "name": "🧠 Gemini API Call", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4, "position": [850, 220] },
     { "parameters": { "jsCode": "const response = $input.all()[0].json; let aiMessage = 'AI response alındı'; try { if (response.candidates && response.candidates[0]) { aiMessage = response.candidates[0].content.parts[0].text; } else { aiMessage = 'Gemini API cevabı boş geldi'; } } catch (e) { aiMessage = 'Gemini API hatası: ' + e.message; } return [{ agentType: 'ai', status: 'completed', response: { message: aiMessage, data: { rawResponse: response } }, metadata: { version: 'MK9', time: new Date().toISOString() } }];" }, "id": "ai-final-mk9", "name": "🤖 AI Response Parser", "type": "n8n-nodes-base.code", "typeVersion": 1, "position": [1020, 220] },
     { "parameters": { "jsCode": "return [{...$input.all()[0].json, agentType: 'file', status: 'executing', response: { message: 'File agent çalıştı', data: {} }, metadata: { version: 'MK9' } }];" }, "id": "file-mk9", "name": "📁 File Agent Executor", "type": "n8n-nodes-base.code", "typeVersion": 1, "position": [680, 280] },
     { "parameters": { "jsCode": "return [{...$input.all()[0].json, agentType: 'api', status: 'executing', response: { message: 'API agent çalıştı', data: {} }, metadata: { version: 'MK9' } }];" }, "id": "api-mk9", "name": "🔗 API Agent Executor", "type": "n8n-nodes-base.code", "typeVersion": 1, "position": [680, 340] },
@@ -115,3 +115,4 @@
   "tags": [ { "name": "VAULT MK9" } ],
   "triggerCount": 1
 }
+
