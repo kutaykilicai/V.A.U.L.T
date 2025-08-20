@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAULT MK8 - Hızlı Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { border-color: #4CAF50; background: #f1f8e9; }
+        .error { border-color: #f44336; background: #ffebee; }
+        .warning { border-color: #ff9800; background: #fff3e0; }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover { background: #1976D2; }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.connected { background: #4CAF50; color: white; }
+        .status.disconnected { background: #f44336; color: white; }
+        .status.testing { background: #ff9800; color: white; }
+        .debug-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 VAULT MK8 - Hızlı Test & Debug</h1>
+        
+        <div class="debug-info">
+            <h3>📋 Debug Bilgileri</h3>
+            <p><strong>Mevcut Endpoint:</strong> <span id="current-endpoint">Yükleniyor...</span></p>
+            <p><strong>Browser Console:</strong> F12 tuşuna basarak açabilirsiniz</p>
+            <p><strong>Debug Komutları:</strong> Console'da <code>VaultDebug.quickTest()</code> kullanın</p>
+        </div>
+
+        <div class="test-section">
+            <h3>📡 Endpoint Test</h3>
+            <label>N8N Webhook URL:</label><br>
+            <input type="text" id="webhook-url" value="http://localhost:5678/webhook/vault-mk8-command" style="width: 400px;">
+            <button onclick="testConnection()">Test Et</button>
+            <div id="connection-status" class="status disconnected">Bağlantı Yok</div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Komut Testi</h3>
+            <div>
+                <label>Test Komutu:</label><br>
+                <input type="text" id="test-command" value="merhaba" style="width: 300px;">
+                <button onclick="sendTestCommand()">Gönder</button>
+            </div>
+            <div id="test-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>⚡ Hızlı Testler</h3>
+            <button onclick="quickTest('merhaba')">Chit-Chat</button>
+            <button onclick="quickTest('yaz test mesajı')">AI Test</button>
+            <button onclick="quickTest('google ara test')">Browser Test</button>
+            <button onclick="quickTest('listele processes')">System Test</button>
+            <button onclick="quickTest('oluştur test.txt')">File Test</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Debug Araçları</h3>
+            <button onclick="runDebugTest()">Detaylı Debug</button>
+            <button onclick="clearResults()">Sonuçları Temizle</button>
+            <button onclick="showDebugInfo()">Debug Bilgileri</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Sonuçlar</h3>
+            <div id="results-container"></div>
+        </div>
+    </div>
+
+    <script src="debug_json.js"></script>
+    <script>
+        const webhookUrlInput = document.getElementById('webhook-url');
+        const testCommandInput = document.getElementById('test-command');
+        const connectionStatus = document.getElementById('connection-status');
+        const testResult = document.getElementById('test-result');
+        const currentEndpoint = document.getElementById('current-endpoint');
+        const resultsContainer = document.getElementById('results-container');
+
+        // Load saved endpoint
+        function loadSavedEndpoint() {
+            const savedUrl = localStorage.getItem('vault_mk8_endpoint');
+            if (savedUrl) {
+                webhookUrlInput.value = savedUrl;
+            }
+            currentEndpoint.textContent = webhookUrlInput.value;
+        }
+
+        async function testConnection() {
+            const url = webhookUrlInput.value.trim();
+            if (!url) {
+                alert('Lütfen webhook URL girin');
+                return;
+            }
+
+            connectionStatus.textContent = 'Test Ediliyor...';
+            connectionStatus.className = 'status testing';
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-VAULT-Version': 'MK8-Test'
+                    },
+                    body: JSON.stringify({
+                        command: 'test connection',
+                        userId: 'test-user',
+                        sessionId: Date.now().toString()
+                    })
+                });
+
+                if (response.ok) {
+                    connectionStatus.textContent = 'Bağlantı Başarılı';
+                    connectionStatus.className = 'status connected';
+                    addResult('✅ Bağlantı testi başarılı', 'success');
+                } else {
+                    connectionStatus.textContent = `HTTP ${response.status}`;
+                    connectionStatus.className = 'status error';
+                    addResult(`❌ HTTP ${response.status} hatası`, 'error');
+                }
+            } catch (error) {
+                connectionStatus.textContent = 'Bağlantı Hatası';
+                connectionStatus.className = 'status error';
+                addResult(`❌ Bağlantı hatası: ${error.message}`, 'error');
+            }
+
+            // Save endpoint
+            localStorage.setItem('vault_mk8_endpoint', url);
+            currentEndpoint.textContent = url;
+        }
+
+        async function sendTestCommand() {
+            const url = webhookUrlInput.value.trim();
+            const command = testCommandInput.value.trim();
+            
+            if (!url || !command) {
+                alert('Lütfen URL ve komut girin');
+                return;
+            }
+
+            testResult.style.display = 'block';
+            testResult.textContent = 'Gönderiliyor...';
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-VAULT-Version': 'MK8-Test'
+                    },
+                    body: JSON.stringify({
+                        command: command,
+                        userId: 'test-user',
+                        sessionId: Date.now().toString()
+                    })
+                });
+
+                const responseTime = Date.now() - startTime;
+                const responseText = await response.text();
+
+                // Debug the response
+                const issues = VaultDebug.debugJsonResponse(responseText);
+
+                if (issues.length === 0) {
+                    try {
+                        const result = JSON.parse(responseText);
+                        testResult.textContent = `✅ Başarılı (${responseTime}ms)\n\n` +
+                                               `Komut: ${command}\n` +
+                                               `Durum: ${response.status}\n` +
+                                               `Cevap: ${JSON.stringify(result, null, 2)}`;
+                        addResult(`✅ Komut başarılı: ${command}`, 'success');
+                    } catch (parseError) {
+                        testResult.textContent = `❌ JSON Parse Hatası\n\n` +
+                                               `Komut: ${command}\n` +
+                                               `Hata: ${parseError.message}\n` +
+                                               `Response: ${responseText.substring(0, 200)}...`;
+                        addResult(`❌ JSON parse hatası: ${command}`, 'error');
+                    }
+                } else {
+                    testResult.textContent = `❌ Response Sorunları\n\n` +
+                                           `Komut: ${command}\n` +
+                                           `Sorunlar:\n${issues.join('\n')}\n` +
+                                           `Response: ${responseText.substring(0, 200)}...`;
+                    addResult(`❌ Response sorunları: ${command}`, 'error');
+                }
+
+                connectionStatus.textContent = 'Bağlantı Başarılı';
+                connectionStatus.className = 'status connected';
+
+            } catch (error) {
+                testResult.textContent = `❌ Hata\n\n` +
+                                       `Komut: ${command}\n` +
+                                       `Hata: ${error.message}`;
+                addResult(`❌ Ağ hatası: ${command}`, 'error');
+
+                connectionStatus.textContent = 'Bağlantı Hatası';
+                connectionStatus.className = 'status error';
+            }
+        }
+
+        function quickTest(command) {
+            testCommandInput.value = command;
+            sendTestCommand();
+        }
+
+        function runDebugTest() {
+            addResult('🔧 Detaylı debug testi başlatılıyor...', 'info');
+            VaultDebug.quickTest().then(result => {
+                if (result.success) {
+                    addResult('✅ Debug testi başarılı', 'success');
+                } else {
+                    addResult(`❌ Debug testi başarısız: ${result.error}`, 'error');
+                }
+            });
+        }
+
+        function clearResults() {
+            resultsContainer.innerHTML = '';
+            testResult.style.display = 'none';
+        }
+
+        function showDebugInfo() {
+            const info = {
+                currentEndpoint: webhookUrlInput.value,
+                savedEndpoint: localStorage.getItem('vault_mk8_endpoint'),
+                userAgent: navigator.userAgent,
+                timestamp: new Date().toISOString()
+            };
+            
+            addResult(`📊 Debug Bilgileri:\n${JSON.stringify(info, null, 2)}`, 'info');
+        }
+
+        function addResult(message, type) {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultsContainer.appendChild(resultDiv);
+            resultsContainer.scrollTop = resultsContainer.scrollHeight;
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            loadSavedEndpoint();
+            setTimeout(testConnection, 1000);
+        });
+
+        // Save endpoint on change
+        webhookUrlInput.addEventListener('change', () => {
+            localStorage.setItem('vault_mk8_endpoint', webhookUrlInput.value);
+            currentEndpoint.textContent = webhookUrlInput.value;
+        });
+    </script>
+</body>
+</html>

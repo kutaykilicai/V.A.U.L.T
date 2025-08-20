@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAULT MK9 PRO - Multi-Agent Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fadeInUp {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+        .animation-delay-2000 {
+            animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+            animation-delay: 4s;
+        }
+        .animate-pulse-custom {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white overflow-hidden relative">
+    <!-- Animated Background -->
+    <div class="absolute inset-0 opacity-10">
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
+        <div class="absolute top-3/4 right-1/4 w-96 h-96 bg-pink-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-2000"></div>
+        <div class="absolute bottom-1/4 left-1/3 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl animate-pulse animation-delay-4000"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="relative z-10 p-6 backdrop-blur-sm bg-slate-900/30 border-b border-cyan-400/20 shadow-lg shadow-cyan-400/10">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="zap" class="w-8 h-8 text-cyan-400 animate-pulse"></i>
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-pink-400 bg-clip-text text-transparent">
+                        VAULT MK9 PRO
+                    </h1>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-300">Endpoint:</span>
+                    <input
+                        type="text"
+                        id="endpoint-input"
+                        value="http://localhost:5678/webhook/vault-mk9-command"
+                        class="bg-slate-800/50 border border-cyan-400/30 rounded-lg px-3 py-1 text-sm text-cyan-400 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                    />
+                    <button
+                        id="test-btn"
+                        class="px-3 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 rounded-lg text-xs text-cyan-400 transition-colors duration-200"
+                    >
+                        Test
+                    </button>
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <div id="connection-dot" class="w-2 h-2 rounded-full bg-green-400 shadow-green-400/50 animate-pulse"></div>
+                    <span id="connection-status" class="text-sm font-medium text-green-400">CONNECTED</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex h-[calc(100vh-88px)]">
+        <!-- Left Panel - Agents & Modules -->
+        <div class="w-80 p-6 backdrop-blur-lg bg-slate-900/20 border-r border-cyan-400/20">
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-cyan-400 mb-4 flex items-center">
+                    <i data-lucide="settings" class="w-5 h-5 mr-2"></i>
+                    AGENTS & MODULES
+                </h2>
+                <p class="text-xs text-gray-400 mb-4">Available system agents</p>
+            </div>
+
+            <div id="agents-container" class="space-y-3">
+                <!-- Agents will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Center Panel - Multi-Agent Command Interface -->
+        <div class="flex-1 flex flex-col">
+            <!-- Chat Header -->
+            <div class="p-4 backdrop-blur-sm bg-slate-900/20 border-b border-cyan-400/20">
+                <h2 class="text-lg font-semibold text-cyan-400 mb-1">MULTI-AGENT COMMAND INTERFACE</h2>
+                <p class="text-xs text-gray-400">Execute commands across connected agents</p>
+            </div>
+
+            <!-- Messages -->
+            <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
+                <!-- Messages will be populated by JavaScript -->
+            </div>
+
+            <!-- Command Input -->
+            <div class="p-4 backdrop-blur-sm bg-slate-900/20 border-t border-cyan-400/20">
+                <div class="flex space-x-4">
+                    <input
+                        type="text"
+                        id="command-input"
+                        placeholder="Enter command or query..."
+                        class="flex-1 bg-slate-800/50 border border-slate-700/50 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/50 font-mono transition-all duration-300 disabled:opacity-50"
+                    />
+                    <button
+                        id="execute-btn"
+                        class="px-6 py-3 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 rounded-lg font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40 flex items-center space-x-2"
+                    >
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                        <span>Execute</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - System Monitoring -->
+        <div class="w-80 p-6 backdrop-blur-lg bg-slate-900/20 border-l border-cyan-400/20">
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold text-cyan-400 mb-4 flex items-center">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5 mr-2"></i>
+                    SYSTEM MONITORING
+                </h2>
+                <p class="text-xs text-gray-400 mb-4">Real-time analytics & performance</p>
+            </div>
+
+            <!-- Success Rate -->
+            <div class="mb-6 p-4 rounded-lg backdrop-blur-sm bg-slate-800/30 border border-slate-700/50">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-sm text-gray-300">Success Rate</span>
+                    <span id="success-rate" class="text-green-400 font-mono text-sm">94.7%</span>
+                </div>
+                <div class="relative w-24 h-24 mx-auto">
+                    <svg class="w-24 h-24 transform -rotate-90">
+                        <circle
+                            cx="48"
+                            cy="48"
+                            r="40"
+                            stroke="currentColor"
+                            stroke-width="6"
+                            fill="transparent"
+                            class="text-slate-700"
+                        />
+                        <circle
+                            id="success-circle"
+                            cx="48"
+                            cy="48"
+                            r="40"
+                            stroke="currentColor"
+                            stroke-width="6"
+                            fill="transparent"
+                            class="text-green-400 drop-shadow-sm"
+                            style="stroke-dasharray: 251.2; stroke-dashoffset: 13.3; filter: drop-shadow(0 0 6px rgb(34 197 94 / 0.5))"
+                        />
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span id="success-percentage" class="text-lg font-bold text-green-400">94.7%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Response Time Chart -->
+            <div class="mb-6 p-4 rounded-lg backdrop-blur-sm bg-slate-800/30 border border-slate-700/50">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-sm text-gray-300">Avg Response Time</span>
+                    <span id="avg-response-time" class="text-cyan-400 font-mono text-sm">2.1s</span>
+                </div>
+                <div id="response-chart" class="h-16 flex items-end justify-between space-x-1">
+                    <!-- Chart bars will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Agent Activity -->
+            <div class="mb-6 p-4 rounded-lg backdrop-blur-sm bg-slate-800/30 border border-slate-700/50">
+                <h3 class="text-sm font-medium text-cyan-400 mb-3">Agent Activity</h3>
+                <div id="agent-activity" class="space-y-2">
+                    <!-- Agent activity will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- System Stats -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-300">Total Requests</span>
+                    <span id="total-requests" class="text-cyan-400 font-mono">1,247</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-300">Active Agents</span>
+                    <span id="active-agents" class="text-green-400 font-mono">6</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-300">Uptime</span>
+                    <span id="uptime" class="text-cyan-400 font-mono">99.4%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-300">Memory Used</span>
+                    <span id="memory-used" class="text-amber-400 font-mono">67.8%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // State variables
+        let isProcessing = false;
+        let endpoint = 'http://localhost:5678/webhook/vault-mk9-command';
+        let connectionStatus = 'CONNECTED';
+        let messages = [
+            { type: 'system', content: 'VAULT MK9 PRO initialized. Multi-agent command center ready.', timestamp: '12:34:01' },
+            { type: 'assistant', content: 'Welcome to VAULT MK9 PRO. All systems operational. How can I assist you today?', timestamp: '12:34:11' }
+        ];
+
+        // Agent data matching MK9 backend
+        let agents = [
+            { id: 'chitchat', name: 'Chat Agent', icon: 'activity', status: 'active', executions: 1247, description: 'Casual conversation & greetings' },
+            { id: 'ai', name: 'AI Assistant', icon: 'code', status: 'active', executions: 892, description: 'Advanced AI processing' },
+            { id: 'browser', name: 'Browser Agent', icon: 'globe', status: 'idle', executions: 543, description: 'Web automation & scraping' },
+            { id: 'system', name: 'System Agent', icon: 'cpu', status: 'active', executions: 331, description: 'System operations' },
+            { id: 'file', name: 'File Agent', icon: 'file-text', status: 'idle', executions: 156, description: 'File management' },
+            { id: 'database', name: 'Database Agent', icon: 'database', status: 'warning', executions: 89, description: 'Data management' }
+        ];
+
+        // Monitoring data
+        let monitoringData = {
+            successRate: 94.7,
+            avgResponseTime: 2.1,
+            totalRequests: 1247,
+            activeAgents: 6,
+            uptime: 99.4,
+            memoryUsed: 67.8
+        };
+
+        // Response time chart data
+        let responseTimeData = [
+            { time: '12:30', value: 1.8 },
+            { time: '12:31', value: 2.2 },
+            { time: '12:32', value: 1.9 },
+            { time: '12:33', value: 2.4 },
+            { time: '12:34', value: 2.1 },
+            { time: '12:35', value: 1.7 },
+            { time: '12:36', value: 2.3 }
+        ];
+
+        // Helper functions
+        function getStatusColor(status) {
+            switch (status) {
+                case 'active': return 'text-green-400 shadow-green-400/50';
+                case 'warning': return 'text-amber-400 shadow-amber-400/50';
+                case 'error': return 'text-red-400 shadow-red-400/50';
+                default: return 'text-gray-400 shadow-gray-400/50';
+            }
+        }
+
+        function getStatusDot(status) {
+            switch (status) {
+                case 'active': return 'bg-green-400 shadow-green-400/50 animate-pulse';
+                case 'warning': return 'bg-amber-400 shadow-amber-400/50 animate-pulse';
+                case 'error': return 'bg-red-400 shadow-red-400/50 animate-pulse';
+                default: return 'bg-gray-400 shadow-gray-400/50';
+            }
+        }
+
+        function updateConnectionStatus(status) {
+            connectionStatus = status;
+            const dot = document.getElementById('connection-dot');
+            const statusText = document.getElementById('connection-status');
+            
+            dot.className = `w-2 h-2 rounded-full ${
+                status === 'CONNECTED' ? getStatusDot('active') : 
+                status === 'ERROR' ? getStatusDot('error') : 
+                getStatusDot('warning')
+            }`;
+            
+            statusText.className = `text-sm font-medium ${
+                status === 'CONNECTED' ? 'text-green-400' : 
+                status === 'ERROR' ? 'text-red-400' : 
+                'text-amber-400'
+            }`;
+            statusText.textContent = status;
+        }
+
+        function renderAgents() {
+            const container = document.getElementById('agents-container');
+            container.innerHTML = agents.map(agent => `
+                <div class="p-4 rounded-lg backdrop-blur-sm bg-slate-800/30 border border-slate-700/50 hover:border-cyan-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-400/10 cursor-pointer group">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center space-x-3">
+                            <i data-lucide="${agent.icon}" class="w-5 h-5 ${getStatusColor(agent.status)} group-hover:scale-110 transition-transform duration-300"></i>
+                            <div>
+                                <h3 class="font-medium text-white group-hover:text-cyan-400 transition-colors duration-300">${agent.name}</h3>
+                                <p class="text-xs text-gray-400">${agent.description}</p>
+                            </div>
+                        </div>
+                        <div class="w-2 h-2 rounded-full ${getStatusDot(agent.status)}"></div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-gray-400">Executions:</span>
+                        <span class="text-cyan-400 font-mono">${agent.executions.toLocaleString()}</span>
+                    </div>
+                    
+                    <div class="mt-2 w-full bg-slate-700/50 rounded-full h-1 overflow-hidden">
+                        <div 
+                            class="h-full bg-gradient-to-r from-cyan-400 to-pink-400 rounded-full transition-all duration-300"
+                            style="width: ${Math.min((agent.executions / 1500) * 100, 100)}%"
+                        ></div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('messages-container');
+            container.innerHTML = messages.map((message, index) => `
+                <div class="flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} animate-fadeInUp" style="animation-delay: ${index * 0.1}s">
+                    <div class="max-w-[80%] rounded-lg p-4 backdrop-blur-sm border transition-all duration-300 ${
+                        message.type === 'user'
+                            ? 'bg-cyan-400/10 border-cyan-400/30 shadow-lg shadow-cyan-400/10'
+                            : message.type === 'system'
+                            ? 'bg-amber-400/10 border-amber-400/30 shadow-lg shadow-amber-400/10'
+                            : 'bg-slate-800/30 border-slate-700/50 shadow-lg shadow-slate-400/5'
+                    }">
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="text-xs font-mono ${
+                                message.type === 'user' ? 'text-cyan-400' : message.type === 'system' ? 'text-amber-400' : 'text-green-400'
+                            }">
+                                ${message.type === 'user' ? 'USER' : message.type === 'system' ? 'SYSTEM' : 'AI ASSISTANT'}
+                            </span>
+                            <span class="text-xs text-gray-400 ml-4">${message.timestamp}</span>
+                        </div>
+                        <p class="text-white font-mono text-sm leading-relaxed">${message.content}</p>
+                    </div>
+                </div>
+            `).join('');
+            
+            if (isProcessing) {
+                container.innerHTML += `
+                    <div class="flex justify-start animate-fadeInUp">
+                        <div class="max-w-[80%] rounded-lg p-4 backdrop-blur-sm bg-slate-800/30 border border-slate-700/50 shadow-lg shadow-slate-400/5">
+                            <div class="flex items-center space-x-2">
+                                <div class="flex space-x-1">
+                                    <div class="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"></div>
+                                    <div class="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                                    <div class="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                                </div>
+                                <span class="text-cyan-400 text-sm font-mono">Processing...</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function renderResponseChart() {
+            const container = document.getElementById('response-chart');
+            container.innerHTML = responseTimeData.map(point => `
+                <div
+                    class="flex-1 bg-gradient-to-t from-cyan-400 to-cyan-300 rounded-sm transition-all duration-300"
+                    style="height: ${(point.value / 3) * 100}%; filter: drop-shadow(0 0 4px rgb(34 211 238 / 0.5))"
+                ></div>
+            `).join('');
+        }
+
+        function renderAgentActivity() {
+            const container = document.getElementById('agent-activity');
+            container.innerHTML = agents.slice(0, 4).map(agent => `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 rounded-full ${getStatusDot(agent.status)}"></div>
+                        <span class="text-xs text-gray-300">${agent.name}</span>
+                    </div>
+                    <span class="text-xs text-cyan-400 font-mono">${agent.executions}</span>
+                </div>
+            `).join('');
+        }
+
+        function updateMonitoringData() {
+            document.getElementById('success-rate').textContent = `${monitoringData.successRate}%`;
+            document.getElementById('success-percentage').textContent = `${monitoringData.successRate}%`;
+            document.getElementById('avg-response-time').textContent = `${monitoringData.avgResponseTime}s`;
+            document.getElementById('total-requests').textContent = monitoringData.totalRequests.toLocaleString();
+            document.getElementById('active-agents').textContent = monitoringData.activeAgents;
+            document.getElementById('uptime').textContent = `${monitoringData.uptime}%`;
+            document.getElementById('memory-used').textContent = `${monitoringData.memoryUsed}%`;
+            
+            // Update success rate circle
+            const circle = document.getElementById('success-circle');
+            const circumference = 2 * Math.PI * 40;
+            const offset = circumference * (1 - monitoringData.successRate / 100);
+            circle.style.strokeDashoffset = offset;
+        }
+
+        // Event handlers
+        async function handleSubmit() {
+            const input = document.getElementById('command-input');
+            const command = input.value.trim();
+            
+            if (!command || isProcessing) return;
+
+            const userMessage = {
+                type: 'user',
+                content: command,
+                timestamp: new Date().toLocaleTimeString('en-US', { hour12: false })
+            };
+
+            messages.push(userMessage);
+            input.value = '';
+            isProcessing = true;
+            renderMessages();
+
+            try {
+                // Real API call to MK9 backend
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        command: command,
+                        userId: 'vault-mk9-pro',
+                        sessionId: Date.now().toString()
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.text();
+                let result;
+                
+                try {
+                    result = JSON.parse(data);
+                    if (Array.isArray(result)) result = result[0];
+                } catch (parseError) {
+                    throw new Error(`Invalid JSON response: ${data.substring(0, 100)}...`);
+                }
+
+                // Handle successful response
+                const assistantMessage = {
+                    type: 'assistant',
+                    content: result.response?.message || result.message || 'Command executed successfully.',
+                    timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+                    agent: result.agent || result.agentType,
+                    status: result.status
+                };
+
+                messages.push(assistantMessage);
+                updateConnectionStatus('CONNECTED');
+
+                // Update agent execution count based on which agent was used
+                const usedAgent = result.agent || result.agentType;
+                if (usedAgent) {
+                    agents = agents.map(agent => 
+                        agent.id === usedAgent ? { ...agent, executions: agent.executions + 1, status: 'active' } : agent
+                    );
+                    renderAgents();
+                    renderAgentActivity();
+                }
+
+                // Update monitoring data
+                monitoringData.totalRequests += 1;
+                monitoringData.successRate = Math.min(monitoringData.successRate + 0.1, 100);
+                updateMonitoringData();
+
+            } catch (error) {
+                console.error('VAULT MK9 PRO Error:', error);
+                
+                const errorMessage = {
+                    type: 'system',
+                    content: `Error: ${error.message}`,
+                    timestamp: new Date().toLocaleTimeString('en-US', { hour12: false })
+                };
+
+                messages.push(errorMessage);
+                updateConnectionStatus('ERROR');
+                
+                // Update monitoring data for error
+                monitoringData.totalRequests += 1;
+                monitoringData.successRate = Math.max(monitoringData.successRate - 0.5, 0);
+                updateMonitoringData();
+            } finally {
+                isProcessing = false;
+                renderMessages();
+            }
+        }
+
+        async function testEndpoint() {
+            try {
+                updateConnectionStatus('TESTING');
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'ping', userId: 'test', sessionId: Date.now().toString() })
+                });
+                updateConnectionStatus(response.ok ? 'CONNECTED' : 'ERROR');
+            } catch {
+                updateConnectionStatus('ERROR');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            renderAgents();
+            renderMessages();
+            renderResponseChart();
+            renderAgentActivity();
+            updateMonitoringData();
+
+            // Event listeners
+            document.getElementById('command-input').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                }
+            });
+
+            document.getElementById('execute-btn').addEventListener('click', handleSubmit);
+            document.getElementById('test-btn').addEventListener('click', testEndpoint);
+            
+            document.getElementById('endpoint-input').addEventListener('change', function(e) {
+                endpoint = e.target.value;
+            });
+
+            // Simulated response time updates
+            setInterval(() => {
+                responseTimeData.shift();
+                const newTime = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+                const newValue = 1.5 + Math.random() * 1.5;
+                responseTimeData.push({ time: newTime, value: parseFloat(newValue.toFixed(1)) });
+                
+                monitoringData.avgResponseTime = parseFloat((1.5 + Math.random() * 1.5).toFixed(1));
+                
+                renderResponseChart();
+                updateMonitoringData();
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

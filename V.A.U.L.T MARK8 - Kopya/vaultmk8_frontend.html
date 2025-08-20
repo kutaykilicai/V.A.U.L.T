@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAULT MK8 - Multi-Agent Komut Merkezi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00bcd4;
+            --secondary: #ff4081;
+            --bg: #181c24;
+            --panel: #23293a;
+            --text: #fff;
+            --muted: #b0b8c1;
+            --success: #00e676;
+            --error: #ff1744;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: var(--panel);
+            border-radius: 16px;
+            box-shadow: 0 4px 32px #0006;
+            padding: 32px 24px 24px 24px;
+        }
+        h1 {
+            font-family: 'Orbitron', Arial, sans-serif;
+            font-size: 2.2em;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        .desc {
+            color: var(--muted);
+            margin-bottom: 24px;
+        }
+        .endpoint-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .endpoint-row input {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #222;
+            color: var(--text);
+        }
+        .endpoint-row button {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .chat-area {
+            background: #20232b;
+            border-radius: 10px;
+            padding: 16px;
+            min-height: 120px;
+            margin-bottom: 16px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .msg {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: #23293a;
+            color: var(--text);
+            font-size: 1em;
+        }
+        .msg.user { background: #263238; color: var(--primary); }
+        .msg.bot { background: #1b222c; color: var(--secondary); }
+        .msg.error { background: #2d1a1a; color: var(--error); }
+        .msg.success { background: #1a2d1a; color: var(--success); }
+        .msg.info { background: #1a1a2d; color: var(--primary); }
+        form {
+            display: flex;
+            gap: 8px;
+        }
+        form input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #23293a;
+            color: var(--text);
+            font-size: 1em;
+        }
+        form button {
+            background: var(--secondary);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: bold;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        .lang-switch {
+            float: right;
+            margin-top: -40px;
+        }
+        .lang-switch button {
+            background: #222;
+            color: var(--muted);
+            border: none;
+            border-radius: 6px;
+            padding: 4px 12px;
+            margin-left: 4px;
+            cursor: pointer;
+        }
+        .lang-switch button.active {
+            background: var(--primary);
+            color: #fff;
+        }
+        @media (max-width: 700px) {
+            .container { padding: 16px 4vw; }
+            h1 { font-size: 1.3em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="lang-switch">
+            <button id="lang-tr" class="active">TR</button>
+            <button id="lang-en">EN</button>
+        </div>
+        <h1 id="title">VAULT MK8</h1>
+        <div class="desc" id="desc">Çoklu ajan komut merkezi. Komutunuzu yazın, n8n backend ile çalışır.</div>
+        <div class="endpoint-row">
+            <input type="text" id="endpoint" value="http://localhost:5678/webhook/vault-mk8-command" placeholder="n8n webhook endpoint URL">
+            <button id="test-endpoint">Test</button>
+        </div>
+        <div class="chat-area" id="chat-area"></div>
+        <form id="chat-form" autocomplete="off">
+            <input type="text" id="chat-input" placeholder="Komutunuzu yazın..." autocomplete="off">
+            <button type="submit" id="send-btn">Gönder</button>
+        </form>
+    </div>
+    <script>
+    // Dil desteği
+    const langs = {
+        tr: {
+            title: "VAULT MK8",
+            desc: "Çoklu ajan komut merkezi. Komutunuzu yazın, n8n backend ile çalışır.",
+            placeholder: "Komutunuzu yazın...",
+            send: "Gönder",
+            test: "Test",
+            endpointPlaceholder: "n8n webhook endpoint URL",
+            testSuccess: "✅ Bağlantı başarılı!",
+            testFail: "❌ Bağlantı başarısız!",
+            error: "Bir hata oluştu!",
+            success: "Başarılı!"
+        },
+        en: {
+            title: "VAULT MK8",
+            desc: "Multi-agent command center. Type your command, works with n8n backend.",
+            placeholder: "Type your command...",
+            send: "Send",
+            test: "Test",
+            endpointPlaceholder: "n8n webhook endpoint URL",
+            testSuccess: "✅ Connection successful!",
+            testFail: "❌ Connection failed!",
+            error: "An error occurred!",
+            success: "Success!"
+        }
+    };
+    let currentLang = 'tr';
+    function setLang(lang) {
+        currentLang = lang;
+        document.getElementById('title').textContent = langs[lang].title;
+        document.getElementById('desc').textContent = langs[lang].desc;
+        document.getElementById('chat-input').placeholder = langs[lang].placeholder;
+        document.getElementById('send-btn').textContent = langs[lang].send;
+        document.getElementById('test-endpoint').textContent = langs[lang].test;
+        document.getElementById('endpoint').placeholder = langs[lang].endpointPlaceholder;
+        document.getElementById('lang-tr').classList.toggle('active', lang==='tr');
+        document.getElementById('lang-en').classList.toggle('active', lang==='en');
+    }
+    document.getElementById('lang-tr').onclick = () => setLang('tr');
+    document.getElementById('lang-en').onclick = () => setLang('en');
+    setLang('tr');
+
+    // Chat fonksiyonları
+    const chatArea = document.getElementById('chat-area');
+    function addMsg(text, type='bot') {
+        const div = document.createElement('div');
+        div.className = 'msg ' + type;
+        div.textContent = text;
+        chatArea.appendChild(div);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+    function clearChat() { chatArea.innerHTML = ''; }
+
+    // Endpoint testi
+    document.getElementById('test-endpoint').onclick = async function() {
+        const url = document.getElementById('endpoint').value.trim();
+        addMsg(langs[currentLang].test + '...', 'info');
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: 'ping', userId: 'test', sessionId: Date.now().toString() })
+            });
+            if (res.ok) {
+                addMsg(langs[currentLang].testSuccess, 'success');
+            } else {
+                addMsg(langs[currentLang].testFail, 'error');
+            }
+        } catch {
+            addMsg(langs[currentLang].testFail, 'error');
+        }
+    };
+
+    // Komut gönderme
+    document.getElementById('chat-form').onsubmit = async function(e) {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (!text) return;
+        addMsg(text, 'user');
+        input.value = '';
+        const url = document.getElementById('endpoint').value.trim();
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: text, userId: 'frontend', sessionId: Date.now().toString() })
+            });
+            const data = await res.text();
+            let msg = '';
+            try {
+                const json = JSON.parse(data);
+                msg = json.response?.message || JSON.stringify(json, null, 2);
+                addMsg(msg, 'bot');
+            } catch {
+                addMsg(langs[currentLang].error + '\n' + data, 'error');
+            }
+        } catch (err) {
+            addMsg(langs[currentLang].error, 'error');
+        }
+    };
+    </script>
+</body>
+</html>
+
