@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+psutil
+python-multipart
+pywinpty
+httpx
+beautifulsoup4
+lxml
+playwright
