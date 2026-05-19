@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAULT MK8 - N8N Bağlantı Testi</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { border-color: #4CAF50; background: #f1f8e9; }
+        .error { border-color: #f44336; background: #ffebee; }
+        .warning { border-color: #ff9800; background: #fff3e0; }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover { background: #1976D2; }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.connected { background: #4CAF50; color: white; }
+        .status.disconnected { background: #f44336; color: white; }
+        .status.testing { background: #ff9800; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 VAULT MK8 - N8N Bağlantı Testi</h1>
+        
+        <div class="test-section">
+            <h3>📡 Bağlantı Ayarları</h3>
+            <label>N8N Webhook URL:</label><br>
+            <input type="text" id="webhook-url" value="http://localhost:5678/webhook/vault-mk8-command" style="width: 400px;">
+            <button onclick="testConnection()">Test Et</button>
+            <div id="connection-status" class="status disconnected">Bağlantı Yok</div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Test Komutları</h3>
+            <div>
+                <label>Test Komutu:</label><br>
+                <input type="text" id="test-command" value="yaz merhaba dünya" style="width: 300px;">
+                <button onclick="sendTestCommand()">Gönder</button>
+            </div>
+            <div id="test-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Hızlı Test Komutları</h3>
+            <button onclick="quickTest('yaz merhaba dünya')">AI Test</button>
+            <button onclick="quickTest('google ara javascript')">Browser Test</button>
+            <button onclick="quickTest('listele processes')">System Test</button>
+            <button onclick="quickTest('oluştur test.txt')">File Test</button>
+            <button onclick="quickTest('istek https://api.github.com')">API Test</button>
+            <button onclick="quickTest('merhaba')">Chit-Chat Test</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Sistem Durumu</h3>
+            <div id="system-info">
+                <p><strong>Frontend:</strong> <span class="status connected">Çalışıyor</span></p>
+                <p><strong>Backend:</strong> <span id="backend-status" class="status disconnected">Bilinmiyor</span></p>
+                <p><strong>Son Test:</strong> <span id="last-test">Henüz test edilmedi</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const webhookUrlInput = document.getElementById('webhook-url');
+        const testCommandInput = document.getElementById('test-command');
+        const connectionStatus = document.getElementById('connection-status');
+        const testResult = document.getElementById('test-result');
+        const backendStatus = document.getElementById('backend-status');
+        const lastTest = document.getElementById('last-test');
+
+        async function testConnection() {
+            const url = webhookUrlInput.value.trim();
+            if (!url) {
+                alert('Lütfen webhook URL girin');
+                return;
+            }
+
+            connectionStatus.textContent = 'Test Ediliyor...';
+            connectionStatus.className = 'status testing';
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-VAULT-Version': 'MK8'
+                    },
+                    body: JSON.stringify({
+                        command: 'test connection',
+                        userId: 'test-user',
+                        sessionId: Date.now().toString()
+                    })
+                });
+
+                if (response.ok) {
+                    connectionStatus.textContent = 'Bağlantı Başarılı';
+                    connectionStatus.className = 'status connected';
+                    backendStatus.textContent = 'Çalışıyor';
+                    backendStatus.className = 'status connected';
+                } else {
+                    connectionStatus.textContent = `HTTP ${response.status}`;
+                    connectionStatus.className = 'status error';
+                    backendStatus.textContent = 'Hata';
+                    backendStatus.className = 'status disconnected';
+                }
+            } catch (error) {
+                connectionStatus.textContent = 'Bağlantı Hatası';
+                connectionStatus.className = 'status error';
+                backendStatus.textContent = 'Bağlantı Yok';
+                backendStatus.className = 'status disconnected';
+                console.error('Bağlantı hatası:', error);
+            }
+
+            lastTest.textContent = new Date().toLocaleString('tr-TR');
+        }
+
+        async function sendTestCommand() {
+            const url = webhookUrlInput.value.trim();
+            const command = testCommandInput.value.trim();
+            
+            if (!url || !command) {
+                alert('Lütfen URL ve komut girin');
+                return;
+            }
+
+            testResult.style.display = 'block';
+            testResult.textContent = 'Gönderiliyor...';
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-VAULT-Version': 'MK8'
+                    },
+                    body: JSON.stringify({
+                        command: command,
+                        userId: 'test-user',
+                        sessionId: Date.now().toString()
+                    })
+                });
+
+                const responseTime = Date.now() - startTime;
+                const result = await response.json();
+
+                testResult.textContent = `✅ Başarılı (${responseTime}ms)\n\n` +
+                                       `Komut: ${command}\n` +
+                                       `Durum: ${response.status}\n` +
+                                       `Cevap: ${JSON.stringify(result, null, 2)}`;
+
+                // Update status
+                connectionStatus.textContent = 'Bağlantı Başarılı';
+                connectionStatus.className = 'status connected';
+                backendStatus.textContent = 'Çalışıyor';
+                backendStatus.className = 'status connected';
+
+            } catch (error) {
+                testResult.textContent = `❌ Hata\n\n` +
+                                       `Komut: ${command}\n` +
+                                       `Hata: ${error.message}`;
+
+                connectionStatus.textContent = 'Bağlantı Hatası';
+                connectionStatus.className = 'status error';
+                backendStatus.textContent = 'Bağlantı Yok';
+                backendStatus.className = 'status disconnected';
+            }
+
+            lastTest.textContent = new Date().toLocaleString('tr-TR');
+        }
+
+        function quickTest(command) {
+            testCommandInput.value = command;
+            sendTestCommand();
+        }
+
+        // Sayfa yüklendiğinde otomatik test
+        window.addEventListener('load', () => {
+            setTimeout(testConnection, 1000);
+        });
+
+        // URL değiştiğinde otomatik test
+        webhookUrlInput.addEventListener('change', testConnection);
+    </script>
+</body>
+</html> 

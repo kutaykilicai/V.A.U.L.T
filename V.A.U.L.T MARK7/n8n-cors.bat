@@ -1,0 +1,6 @@
+@echo off
+set N8N_CORS_ORIGIN=*
+set N8N_PUSH_BACKEND=websocket
+echo N8N CORS ayarlari yuklendi...
+echo N8N baslatiliyor...
+n8n start

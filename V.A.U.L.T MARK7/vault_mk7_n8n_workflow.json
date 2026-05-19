@@ -1,0 +1,315 @@
+{
+  "name": "VAULT MK7 - Multi-Agent Command Center",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vault-command",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-entry",
+      "name": "🎯 Command Input",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "vault-mk7-command"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "agent-router",
+              "leftValue": "={{ $json.command }}",
+              "rightValue": "browser",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "command-router",
+      "name": "🧠 Agent Router",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// VAULT MK7 - Browser Agent\nconst command = $input.first().json.command;\nconst sessionId = $input.first().json.session_id || 'default';\n\n// Selenium Actions Database\nconst actions = {\n  'google_search': (query) => `\n    driver.get('https://www.google.com')\n    search_box = driver.find_element(By.NAME, 'q')\n    search_box.send_keys('${query}')\n    search_box.send_keys(Keys.RETURN)\n    time.sleep(2)\n  `,\n  'navigate': (url) => `driver.get('${url}')`,\n  'click_element': (selector) => `driver.find_element(By.CSS_SELECTOR, '${selector}').click()`,\n  'fill_form': (selector, text) => `\n    element = driver.find_element(By.CSS_SELECTOR, '${selector}')\n    element.clear()\n    element.send_keys('${text}')\n  `,\n  'screenshot': () => `driver.save_screenshot('vault_screenshot.png')`\n};\n\n// Natural Language Processing\nfunction parseCommand(cmd) {\n  cmd = cmd.toLowerCase();\n  \n  if (cmd.includes('google') || cmd.includes('ara')) {\n    const query = cmd.replace(/.*(?:google|ara)\\s+/, '');\n    return { action: 'google_search', params: query };\n  }\n  \n  if (cmd.includes('git') || cmd.includes('website')) {\n    const url = cmd.match(/https?:\\/\\/[^\\s]+/) || ['https://www.google.com'];\n    return { action: 'navigate', params: url[0] };\n  }\n  \n  if (cmd.includes('screenshot') || cmd.includes('ekran')) {\n    return { action: 'screenshot', params: null };\n  }\n  \n  return { action: 'navigate', params: 'https://www.google.com' };\n}\n\nconst parsed = parseCommand(command);\nconst seleniumCode = actions[parsed.action](parsed.params);\n\nreturn {\n  agent: 'BrowserAgent',\n  command: command,\n  selenium_code: seleniumCode,\n  session_id: sessionId,\n  timestamp: new Date().toISOString(),\n  status: 'ready_to_execute'\n};"
+      },
+      "id": "browser-agent",
+      "name": "🌐 Browser Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "// VAULT MK7 - System Agent\nconst command = $input.first().json.command;\nconst sessionId = $input.first().json.session_id || 'default';\n\n// Windows Command Database\nconst systemCommands = {\n  'notepad_open': 'notepad',\n  'notepad_close': 'taskkill /F /IM notepad.exe',\n  'calculator': 'calc',\n  'task_manager': 'taskmgr',\n  'control_panel': 'control',\n  'cmd': 'cmd',\n  'powershell': 'powershell',\n  'list_processes': 'tasklist',\n  'network_info': 'ipconfig /all',\n  'disk_info': 'wmic logicaldisk get size,freespace,caption',\n  'system_info': 'systeminfo',\n  'kill_process': (name) => `taskkill /F /IM ${name}`,\n  'start_service': (name) => `net start ${name}`,\n  'stop_service': (name) => `net stop ${name}`\n};\n\n// Natural Language to Command Parser\nfunction parseSystemCommand(cmd) {\n  cmd = cmd.toLowerCase();\n  \n  // Process management\n  if (cmd.includes('kapat') && cmd.includes('notepad')) return 'notepad_close';\n  if (cmd.includes('aç') && cmd.includes('notepad')) return 'notepad_open';\n  if (cmd.includes('hesap makinesi') || cmd.includes('calculator')) return 'calculator';\n  if (cmd.includes('görev yöneticisi') || cmd.includes('task manager')) return 'task_manager';\n  \n  // System info\n  if (cmd.includes('sistem bilgisi') || cmd.includes('system info')) return 'system_info';\n  if (cmd.includes('ağ bilgisi') || cmd.includes('network')) return 'network_info';\n  if (cmd.includes('disk') || cmd.includes('storage')) return 'disk_info';\n  if (cmd.includes('process') || cmd.includes('işlem')) return 'list_processes';\n  \n  // Default\n  return 'system_info';\n}\n\nconst commandKey = parseSystemCommand(command);\nconst windowsCommand = systemCommands[commandKey];\n\nreturn {\n  agent: 'SystemAgent',\n  command: command,\n  windows_command: windowsCommand,\n  session_id: sessionId,\n  timestamp: new Date().toISOString(),\n  status: 'ready_to_execute'\n};"
+      },
+      "id": "system-agent",
+      "name": "⚙️ System Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// VAULT MK7 - AI Agent (Gemini Integration)\nconst command = $input.first().json.command;\nconst sessionId = $input.first().json.session_id || 'default';\n\n// AI Tasks Classification\nfunction classifyTask(cmd) {\n  cmd = cmd.toLowerCase();\n  \n  const taskTypes = {\n    'creative': ['yaz', 'oluştur', 'tasarla', 'write', 'create', 'design'],\n    'analysis': ['analiz', 'incele', 'karşılaştır', 'analyze', 'compare', 'evaluate'],\n    'translation': ['çevir', 'translate', 'türkçe', 'english'],\n    'coding': ['kod', 'program', 'script', 'code', 'function', 'algorithm'),\n    'research': ['araştır', 'bul', 'öğren', 'research', 'find', 'learn'],\n    'conversation': ['sohbet', 'konuş', 'chat', 'talk', 'discuss']\n  };\n  \n  for (const [type, keywords] of Object.entries(taskTypes)) {\n    if (keywords.some(keyword => cmd.includes(keyword))) {\n      return type;\n    }\n  }\n  \n  return 'conversation';\n}\n\nconst taskType = classifyTask(command);\n\nconst systemPrompt = {\n  'creative': 'Sen yaratıcı bir asistansın. Özgün ve etkileyici içerikler üret.',\n  'analysis': 'Sen analitik bir uzman asistansın. Detaylı analizler yap.',\n  'translation': 'Sen profesyonel bir çevirmen asistansın. Doğru çeviriler yap.',\n  'coding': 'Sen expert bir programcı asistansın. Optimize edilmiş kodlar yaz.',\n  'research': 'Sen araştırmacı bir asistansın. Kapsamlı bilgiler sun.',\n  'conversation': 'Sen VAULT MK7 asistanısın. Kullanıcıya \"Efendim\" diye hitap et.'\n};\n\nreturn {\n  agent: 'AIAgent',\n  command: command,\n  task_type: taskType,\n  system_prompt: systemPrompt[taskType],\n  session_id: sessionId,\n  timestamp: new Date().toISOString(),\n  status: 'ready_to_process',\n  gemini_payload: {\n    contents: [{\n      parts: [{\n        text: `${systemPrompt[taskType]}\\n\\nKullanıcı isteği: ${command}`\n      }]\n    }]\n  }\n};"
+      },
+      "id": "ai-agent",
+      "name": "🤖 AI Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "// VAULT MK7 - File Agent\nconst command = $input.first().json.command;\nconst sessionId = $input.first().json.session_id || 'default';\n\n// File Operations Database\nconst fileOperations = {\n  'create_file': (filename, content) => `\n    with open('${filename}', 'w', encoding='utf-8') as f:\n        f.write('${content}')\n  `,\n  'read_file': (filename) => `\n    with open('${filename}', 'r', encoding='utf-8') as f:\n        content = f.read()\n    print(content)\n  `,\n  'delete_file': (filename) => `os.remove('${filename}')`,\n  'copy_file': (source, dest) => `shutil.copy2('${source}', '${dest}')`,\n  'move_file': (source, dest) => `shutil.move('${source}', '${dest}')`,\n  'list_files': (directory) => `os.listdir('${directory || \".\"}')`\n};\n\n// Parse file commands\nfunction parseFileCommand(cmd) {\n  cmd = cmd.toLowerCase();\n  \n  if (cmd.includes('oluştur') || cmd.includes('create')) {\n    const match = cmd.match(/([\\w\\-\\.]+\\.[\\w]+)/);\n    const filename = match ? match[1] : 'vault_file.txt';\n    return { operation: 'create_file', params: [filename, 'VAULT MK7 Generated File'] };\n  }\n  \n  if (cmd.includes('oku') || cmd.includes('read')) {\n    const match = cmd.match(/([\\w\\-\\.]+\\.[\\w]+)/);\n    const filename = match ? match[1] : 'vault_file.txt';\n    return { operation: 'read_file', params: [filename] };\n  }\n  \n  if (cmd.includes('sil') || cmd.includes('delete')) {\n    const match = cmd.match(/([\\w\\-\\.]+\\.[\\w]+)/);\n    const filename = match ? match[1] : 'vault_file.txt';\n    return { operation: 'delete_file', params: [filename] };\n  }\n  \n  if (cmd.includes('listele') || cmd.includes('list')) {\n    return { operation: 'list_files', params: ['.'] };\n  }\n  \n  return { operation: 'list_files', params: ['.'] };\n}\n\nconst parsed = parseFileCommand(command);\nconst pythonCode = fileOperations[parsed.operation](...parsed.params);\n\nreturn {\n  agent: 'FileAgent',\n  command: command,\n  operation: parsed.operation,\n  python_code: pythonCode,\n  session_id: sessionId,\n  timestamp: new Date().toISOString(),\n  status: 'ready_to_execute'\n};"
+      },
+      "id": "file-agent",
+      "name": "📁 File Agent",\n      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 540]
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "={{ $json.gemini_payload.contents }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "gemini-api",
+      "name": "🧠 Gemini API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 420]
+    },
+    {
+      "parameters": {
+        "command": "={{ $json.windows_command }}"
+      },
+      "id": "execute-system",
+      "name": "⚡ Execute System",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// VAULT MK7 - Python Executor for Browser & File Operations\nconst inputData = $input.first().json;\n\n// Create Python script based on agent type\nlet pythonScript = '';\n\nif (inputData.agent === 'BrowserAgent') {\n  pythonScript = `\n# VAULT MK7 - Browser Agent Execution\nfrom selenium import webdriver\nfrom selenium.webdriver.common.by import By\nfrom selenium.webdriver.common.keys import Keys\nimport time\n\ntry:\n    driver = webdriver.Chrome()\n    ${inputData.selenium_code}\n    print(f\"Browser command executed successfully: {inputData.command}\")\nexcept Exception as e:\n    print(f\"Browser execution error: {str(e)}\")\nfinally:\n    try:\n        driver.quit()\n    except:\n        pass\n  `;\n} else if (inputData.agent === 'FileAgent') {\n  pythonScript = `\n# VAULT MK7 - File Agent Execution\nimport os\nimport shutil\n\ntry:\n    ${inputData.python_code}\n    print(f\"File operation completed: {inputData.command}\")\nexcept Exception as e:\n    print(f\"File operation error: {str(e)}\")\n  `;\n}\n\n// Write Python script to temp file\nconst fs = require('fs');\nconst path = require('path');\nconst tempFile = path.join(process.cwd(), 'vault_temp_script.py');\n\nfs.writeFileSync(tempFile, pythonScript);\n\nreturn {\n  agent: inputData.agent,\n  command: inputData.command,\n  script_path: tempFile,\n  python_script: pythonScript,\n  session_id: inputData.session_id,\n  status: 'script_ready'\n};"
+      },
+      "id": "python-executor",
+      "name": "🐍 Python Executor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 180]
+    },
+    {
+      "parameters": {
+        "command": "python {{ $json.script_path }}"
+      },
+      "id": "execute-python",
+      "name": "⚡ Execute Python",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1120, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "// VAULT MK7 - Response Coordinator\nconst allInputs = $input.all();\nlet responses = [];\n\nallInputs.forEach(input => {\n  const data = input.json;\n  \n  if (data.agent) {\n    responses.push({\n      agent: data.agent,\n      command: data.command || data.prompt,\n      result: data.stdout || data.candidates?.[0]?.content?.parts?.[0]?.text || data.result || 'Executed successfully',\n      timestamp: new Date().toISOString(),\n      session_id: data.session_id\n    });\n  }\n});\n\n// Combine all agent responses\nconst finalResponse = {\n  vault_version: 'MK7',\n  timestamp: new Date().toISOString(),\n  session_id: responses[0]?.session_id || 'default',\n  agents_executed: responses.length,\n  responses: responses,\n  summary: `VAULT MK7 executed ${responses.length} agent(s) successfully.`,\n  status: 'completed'\n};\n\nreturn finalResponse;"
+      },
+      "id": "response-coordinator",
+      "name": "🎯 Response Coordinator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "webhook-response",
+      "name": "📡 Response Output",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "webhook-entry": {
+      "main": [
+        [
+          {
+            "node": "command-router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "command-router": {
+      "main": [
+        [
+          {
+            "node": "browser-agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "system-agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ai-agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "file-agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "browser-agent": {
+      "main": [
+        [
+          {
+            "node": "python-executor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "system-agent": {
+      "main": [
+        [
+          {
+            "node": "execute-system",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ai-agent": {
+      "main": [
+        [
+          {
+            "node": "gemini-api",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "file-agent": {
+      "main": [
+        [
+          {
+            "node": "python-executor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "python-executor": {
+      "main": [
+        [
+          {
+            "node": "execute-python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "execute-python": {
+      "main": [
+        [
+          {
+            "node": "response-coordinator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "execute-system": {
+      "main": [
+        [
+          {
+            "node": "response-coordinator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gemini-api": {
+      "main": [
+        [
+          {
+            "node": "response-coordinator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "response-coordinator": {
+      "main": [
+        [
+          {
+            "node": "webhook-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "versionId": "vault-mk7-v1"
+}

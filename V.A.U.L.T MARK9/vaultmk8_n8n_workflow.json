@@ -1,0 +1,118 @@
+{
+  "name": "VAULT MK9 - Advanced Multi-Agent Command Processor",
+  "description": "Intelligent Turkish/English command processor with multi-agent routing and context management (MK9)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vault-mk9-command",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-mk9",
+      "name": "🎯 Command Input Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [20, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// VAULT MK9 - Advanced Command Processor & Language Detection\nconst inputData = $input.all();\nconst command = inputData[0]?.json?.command || inputData[0]?.json?.body?.command || '';\nconst userId = inputData[0]?.json?.userId || 'anonymous';\nconst sessionId = inputData[0]?.json?.sessionId || Date.now().toString();\n\n// Gelişmiş pattern eşleştirme - daha fazla anahtar kelime\nconst turkishPatterns = {\n  ai: ['yaz','analiz','çevir','özetle','sor','anlat','açıkla','değerlendir','düşün','hesapla','metin','paragraf','makale','hikaye','şiir'],\n  browser: ['google','ara','arama','git','web','site','açar','gir','bul','tarama','ziyaret','göz at'],\n  system: ['kapat','aç','çalıştır','durdur','listele','sistem','process','kill','başlat','durum'],\n  file: ['dosya','klasör','oluştur','sil','kopyala','taşı','yaz','oku','kaydet','indir'],\n  api: ['istek','veri','gönder','al','api','webhook','servis','çağır'],\n  database: ['veritabanı','kayıt','sorgula','güncelle','ekle','db','veri'],\n  chitchat: ['selam','merhaba','günaydın','iyi günler','nasılsın','naber','iyi misin','teşekkür','sağol','hoşça kal','görüşürüz','iyi geceler','hello','hi','hey']\n};\n\nfunction analyzeCommand(cmd) {\n  const lowerCmd = cmd.toLowerCase();\n  const words = lowerCmd.split(/\\s+/);\n  const agentScores = { ai: 0, browser: 0, system: 0, file: 0, api: 0, database: 0, chitchat: 0 };\n  \n  // Her agent için pattern kontrolü\n  Object.keys(turkishPatterns).forEach(agent => {\n    turkishPatterns[agent].forEach(pattern => {\n      if (lowerCmd.includes(pattern)) {\n        agentScores[agent] += pattern.length * 2; // Ağırlık artır\n      }\n    });\n  });\n  \n  // AI için varsayılan: uzun metinler, sorular\n  if (lowerCmd.length > 50 || lowerCmd.includes('?') || lowerCmd.includes('nasıl') || lowerCmd.includes('nedir')) {\n    agentScores.ai += 10;\n  }\n  \n  // Chitchat için varsayılan: kısa selamlaşmalar\n  if (lowerCmd.length < 15 && (lowerCmd.includes('selam') || lowerCmd.includes('merhaba') || lowerCmd.includes('hello') || lowerCmd.includes('hi'))) {\n    agentScores.chitchat += 20;\n  }\n  \n  // En yüksek skorlu agent'ı bul\n  let bestAgent = 'ai'; // varsayılan\n  let maxScore = 0;\n  Object.keys(agentScores).forEach(agent => {\n    if (agentScores[agent] > maxScore) {\n      maxScore = agentScores[agent];\n      bestAgent = agent;\n    }\n  });\n  \n  // Eğer hiçbir pattern eşleşmezse AI'ya yönlendir\n  if (maxScore === 0) bestAgent = 'ai';\n  \n  return {\n    originalCommand: cmd,\n    detectedLanguage: 'turkish',\n    primaryAgent: bestAgent,\n    confidence: maxScore > 0 ? maxScore / words.length : 0.5,\n    agentScores,\n    timestamp: new Date().toISOString(),\n    sessionId,\n    userId,\n    debug: { command: lowerCmd, scores: agentScores, maxScore, selectedAgent: bestAgent }\n  };\n}\n\nconst analysis = analyzeCommand(command);\nconst executionContext = {\n  ...analysis,\n  executionId: `exec_${Date.now()}`,\n  status: 'routing',\n  metadata: {\n    processingTime: Date.now(),\n    version: 'MK9',\n    workflow: 'multi-agent-processor'\n  }\n};\n\nreturn [executionContext];"
+      },
+      "id": "analyzer-mk9",
+      "name": "🧠 Intelligent Command Analyzer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.primaryAgent }}",
+        "rules": {
+          "rules": [
+            { "value2": "chitchat", "output": 0 },
+            { "value2": "ai", "output": 1 },
+            { "value2": "browser", "output": 2 },
+            { "value2": "system", "output": 3 }
+          ]
+        },
+        "fallbackOutput": 1
+      },
+      "id": "router-mk9",
+      "name": "🎯 Agent Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    { 
+      "parameters": { 
+        "jsCode": "const context = $input.all()[0].json;\nconst cmd = context.originalCommand.toLowerCase();\nconst { spawn } = require('child_process');\n\nlet result = { message: 'Browser komutu işleniyor...', success: false };\n\ntry {\n  if (cmd.includes('chrome') || cmd.includes('google')) {\n    // Chrome açma komutu\n    const chrome = spawn('start', ['chrome'], { shell: true, detached: true });\n    result = { message: 'Google Chrome açılıyor...', success: true, action: 'chrome_opened' };\n  } else if (cmd.includes('steam')) {\n    // Steam açma komutu\n    const steam = spawn('start', ['steam://'], { shell: true, detached: true });\n    result = { message: 'Steam açılıyor...', success: true, action: 'steam_opened' };\n  } else if (cmd.includes('firefox')) {\n    const firefox = spawn('start', ['firefox'], { shell: true, detached: true });\n    result = { message: 'Firefox açılıyor...', success: true, action: 'firefox_opened' };\n  } else if (cmd.includes('edge')) {\n    const edge = spawn('start', ['msedge'], { shell: true, detached: true });\n    result = { message: 'Microsoft Edge açılıyor...', success: true, action: 'edge_opened' };\n  } else {\n    // Genel web arama\n    const searchQuery = cmd.replace(/google|ara|arama|git|web/gi, '').trim();\n    if (searchQuery) {\n      const search = spawn('start', [`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`], { shell: true, detached: true });\n      result = { message: `\"${searchQuery}\" için Google araması başlatılıyor...`, success: true, action: 'search_opened' };\n    } else {\n      result = { message: 'Browser komutu tanımlanamadı. Örnek: \"chrome aç\", \"steam aç\"', success: false };\n    }\n  }\n} catch (error) {\n  result = { message: `Browser hatası: ${error.message}`, success: false, error: error.message };\n}\n\nreturn [{\n  ...context,\n  agentType: 'browser',\n  status: result.success ? 'completed' : 'error',\n  response: result,\n  metadata: { version: 'MK9', timestamp: new Date().toISOString(), platform: 'windows' }\n}];" 
+      }, 
+      "id": "browser-mk9", 
+      "name": "🌐 Browser Agent Executor", 
+      "type": "n8n-nodes-base.code", 
+      "typeVersion": 1, 
+      "position": [680, 100] 
+    },
+    { 
+      "parameters": { 
+        "jsCode": "const context = $input.all()[0].json;\nconst cmd = context.originalCommand.toLowerCase();\nconst { spawn, exec } = require('child_process');\nconst util = require('util');\nconst execPromise = util.promisify(exec);\n\nlet result = { message: 'Sistem komutu işleniyor...', success: false };\n\ntry {\n  if (cmd.includes('kapat') || cmd.includes('kapat')) {\n    // Uygulama kapatma\n    if (cmd.includes('chrome')) {\n      exec('taskkill /IM chrome.exe /F', (error) => {});\n      result = { message: 'Chrome kapatılıyor...', success: true, action: 'chrome_killed' };\n    } else if (cmd.includes('steam')) {\n      exec('taskkill /IM steam.exe /F', (error) => {});\n      result = { message: 'Steam kapatılıyor...', success: true, action: 'steam_killed' };\n    } else {\n      result = { message: 'Hangi uygulamayı kapatmak istiyorsun? Örnek: \"chrome kapat\"', success: false };\n    }\n  } else if (cmd.includes('listele') || cmd.includes('process')) {\n    // Process listesi\n    exec('tasklist | findstr /I \"chrome steam discord\"', (error, stdout) => {\n      const processes = stdout || 'Aktif uygulama bulunamadı';\n      result = { message: `Aktif uygulamalar:\\n${processes}`, success: true, action: 'process_listed', data: processes };\n    });\n    result = { message: 'Aktif uygulamalar listeleniyor...', success: true, action: 'listing_processes' };\n  } else if (cmd.includes('sistem durum')) {\n    // Sistem durumu\n    exec('systeminfo | findstr /I \"Total Physical Memory Available Physical Memory\"', (error, stdout) => {\n      const sysInfo = stdout || 'Sistem bilgisi alınamadı';\n      result = { message: `Sistem Durumu:\\n${sysInfo}`, success: true, action: 'system_info', data: sysInfo };\n    });\n    result = { message: 'Sistem durumu kontrol ediliyor...', success: true, action: 'checking_system' };\n  } else if (cmd.includes('hesap makinesi') || cmd.includes('calc')) {\n    // Hesap makinesi aç\n    spawn('calc', [], { detached: true });\n    result = { message: 'Hesap makinesi açılıyor...', success: true, action: 'calc_opened' };\n  } else if (cmd.includes('not defteri') || cmd.includes('notepad')) {\n    // Not defteri aç\n    spawn('notepad', [], { detached: true });\n    result = { message: 'Not defteri açılıyor...', success: true, action: 'notepad_opened' };\n  } else if (cmd.includes('görev yöneticisi') || cmd.includes('task manager')) {\n    // Görev yöneticisi aç\n    spawn('taskmgr', [], { detached: true });\n    result = { message: 'Görev yöneticisi açılıyor...', success: true, action: 'taskmgr_opened' };\n  } else {\n    result = { message: 'Sistem komutu tanımlanamadı. Örnek: \"chrome kapat\", \"hesap makinesi aç\", \"görev yöneticisi aç\"', success: false };\n  }\n} catch (error) {\n  result = { message: `Sistem hatası: ${error.message}`, success: false, error: error.message };\n}\n\nreturn [{\n  ...context,\n  agentType: 'system',\n  status: result.success ? 'completed' : 'error',\n  response: result,\n  metadata: { version: 'MK9', timestamp: new Date().toISOString(), platform: 'windows' }\n}];" 
+      }, 
+      "id": "system-mk9", 
+      "name": "⚙️ System Agent Executor", 
+      "type": "n8n-nodes-base.code", 
+      "typeVersion": 1, 
+      "position": [680, 160] 
+    },
+    { 
+      "parameters": { 
+        "jsCode": "const context = $input.all()[0].json;\nconst cmd = context.originalCommand;\n\n// Gemini API için prompt hazırla\nconst prompt = `Sen VAULT MK9 AI asistanısın. Türkçe konuşuyorsun ve kullanıcının komutlarını anlayıp yardımcı oluyorsun. \nKomut: \"${cmd}\"\nBu komut için uygun bir yanıt ver:`;\n\nreturn [{\n  ...context,\n  agentType: 'ai',\n  status: 'processing',\n  prompt: prompt,\n  originalCommand: cmd,\n  metadata: { version: 'MK9', timestamp: new Date().toISOString() }\n}];" 
+      }, 
+      "id": "ai-simple-mk9", 
+      "name": "🤖 AI Agent Executor", 
+      "type": "n8n-nodes-base.code", 
+      "typeVersion": 1, 
+      "position": [680, 220] 
+    },
+    { "parameters": { "requestMethod": "POST", "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key="apikeyinizigirin"-iCIbnorH9S2NRUv-2AnQ", "sendHeaders": true, "specifyHeaders": "keypair", "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] }, "sendBody": true, "contentType": "json", "jsonBody": "={{ { \"contents\": [{ \"parts\": [{ \"text\": $json.prompt }] }] } }}", "options": {} }, "id": "gemini-api-mk9", "name": "🧠 Gemini API Call", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4, "position": [850, 220] },
+    { "parameters": { "jsCode": "const response = $input.all()[0].json; let aiMessage = 'AI response alındı'; try { if (response.candidates && response.candidates[0]) { aiMessage = response.candidates[0].content.parts[0].text; } else { aiMessage = 'Gemini API cevabı boş geldi'; } } catch (e) { aiMessage = 'Gemini API hatası: ' + e.message; } return [{ agentType: 'ai', status: 'completed', response: { message: aiMessage, data: { rawResponse: response } }, metadata: { version: 'MK9', time: new Date().toISOString() } }];" }, "id": "ai-final-mk9", "name": "🤖 AI Response Parser", "type": "n8n-nodes-base.code", "typeVersion": 1, "position": [1020, 220] },
+    { "parameters": { "jsCode": "return [{...$input.all()[0].json, agentType: 'file', status: 'executing', response: { message: 'File agent çalıştı', data: {} }, metadata: { version: 'MK9' } }];" }, "id": "file-mk9", "name": "📁 File Agent Executor", "type": "n8n-nodes-base.code", "typeVersion": 1, "position": [680, 280] },
+    { "parameters": { "jsCode": "return [{...$input.all()[0].json, agentType: 'api', status: 'executing', response: { message: 'API agent çalıştı', data: {} }, metadata: { version: 'MK9' } }];" }, "id": "api-mk9", "name": "🔗 API Agent Executor", "type": "n8n-nodes-base.code", "typeVersion": 1, "position": [680, 340] },
+    { "parameters": { "jsCode": "return [{...$input.all()[0].json, agentType: 'database', status: 'executing', response: { message: 'Database agent çalıştı', data: {} }, metadata: { version: 'MK9' } }];" }, "id": "db-mk9", "name": "🗄️ Database Agent Executor", "type": "n8n-nodes-base.code", "typeVersion": 1, "position": [680, 400] },
+    { "parameters": { "jsCode": "const context = $input.all()[0].json; const cmd = context.originalCommand.toLowerCase(); let msg = 'Merhaba! Nasılsın?'; if (cmd.includes('hello') || cmd.includes('hi')) { msg = 'Hello! How are you?'; } else if (cmd.includes('günaydın')) { msg = 'Günaydın! İyi günler dilerim.'; } else if (cmd.includes('iyi geceler')) { msg = 'İyi geceler! Tatlı rüyalar.'; } return [{ agentType: 'chitchat', status: 'completed', response: { message: msg }, metadata: { version: 'MK9', time: new Date().toISOString() } }];" }, "id": "chitchat-mk9", "name": "💬 Chit-Chat Agent Executor", "type": "n8n-nodes-base.code", "typeVersion": 1, "position": [680, 460] },
+    { "parameters": { "mode": "append", "options": {} }, "id": "agg-mk9", "name": "🔄 Response Aggregator", "type": "n8n-nodes-base.merge", "typeVersion": 3, "position": [1200, 300] },
+    { "parameters": { "jsCode": "const allData = $input.all(); const executionResult = allData[0]?.json; return [{ success: true, agent: executionResult?.agentType || 'unknown', status: executionResult?.status || 'completed', response: { message: executionResult?.response?.message || 'Test response' }, metadata: { version: 'MK9', time: new Date().toISOString() } }];" }, "id": "final-mk9", "name": "✅ Final Response Processor", "type": "n8n-nodes-base.code", "typeVersion": 1, "position": [1420, 300] },
+    { "parameters": { "respondWith": "allIncomingItems", "options": { "responseHeaders": { "entries": [ { "name": "Content-Type", "value": "application/json" }, { "name": "Access-Control-Allow-Origin", "value": "*" }, { "name": "Access-Control-Allow-Methods", "value": "POST, GET, OPTIONS" }, { "name": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" } ] } } }, "id": "resp-mk9", "name": "📤 Response Webhook", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1, "position": [1640, 300] }
+  ],
+  "connections": {
+    "🎯 Command Input Webhook": { "main": [[{ "node": "🧠 Intelligent Command Analyzer", "type": "main", "index": 0 }]] },
+    "🧠 Intelligent Command Analyzer": { "main": [[{ "node": "🎯 Agent Router", "type": "main", "index": 0 }]] },
+    "🎯 Agent Router": { "main": [
+      [{ "node": "💬 Chit-Chat Agent Executor", "type": "main", "index": 0 }],
+      [{ "node": "🤖 AI Agent Executor", "type": "main", "index": 0 }],
+      [{ "node": "🌐 Browser Agent Executor", "type": "main", "index": 0 }],
+      [{ "node": "⚙️ System Agent Executor", "type": "main", "index": 0 }]
+    ] },
+    "💬 Chit-Chat Agent Executor": { "main": [[{ "node": "🔄 Response Aggregator", "type": "main", "index": 0 }]] },
+    "🤖 AI Agent Executor": { "main": [[{ "node": "🧠 Gemini API Call", "type": "main", "index": 0 }]] },
+    "🧠 Gemini API Call": { "main": [[{ "node": "🤖 AI Response Parser", "type": "main", "index": 0 }]] },
+    "🤖 AI Response Parser": { "main": [[{ "node": "🔄 Response Aggregator", "type": "main", "index": 0 }]] },
+    "🌐 Browser Agent Executor": { "main": [[{ "node": "🔄 Response Aggregator", "type": "main", "index": 0 }]] },
+    "⚙️ System Agent Executor": { "main": [[{ "node": "🔄 Response Aggregator", "type": "main", "index": 0 }]] },
+    "🔄 Response Aggregator": { "main": [[{ "node": "✅ Final Response Processor", "type": "main", "index": 0 }]] },
+    "✅ Final Response Processor": { "main": [[{ "node": "📤 Response Webhook", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "Europe/Istanbul"
+  },
+  "active": true,
+  "tags": [ { "name": "VAULT MK9" } ],
+  "triggerCount": 1
+}
+

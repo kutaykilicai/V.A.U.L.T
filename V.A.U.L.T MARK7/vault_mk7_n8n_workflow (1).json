@@ -1,0 +1,264 @@
+{
+  "name": "VAULT MK7 Multi-Agent System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vault-command",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-entry",
+      "name": "Command Input",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const command = $input.first().json.command;\nconst sessionId = $input.first().json.session_id || 'default';\n\n// Agent routing logic\nlet targetAgents = [];\n\nconst cmd = command.toLowerCase();\n\n// Browser agent triggers\nif (cmd.includes('browser') || cmd.includes('google') || cmd.includes('website') || cmd.includes('ara')) {\n  targetAgents.push('browser');\n}\n\n// System agent triggers\nif (cmd.includes('kapat') || cmd.includes('aç') || cmd.includes('listele') || cmd.includes('sistem')) {\n  targetAgents.push('system');\n}\n\n// File agent triggers\nif (cmd.includes('dosya') || cmd.includes('file') || cmd.includes('oluştur') || cmd.includes('sil')) {\n  targetAgents.push('file');\n}\n\n// AI agent triggers\nif (cmd.includes('yaz') || cmd.includes('analiz') || cmd.includes('çevir') || targetAgents.length === 0) {\n  targetAgents.push('ai');\n}\n\nreturn [{\n  command: command,\n  session_id: sessionId,\n  timestamp: new Date().toISOString(),\n  target_agents: targetAgents\n}];"
+      },
+      "id": "agent-router",
+      "name": "Agent Router",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.target_agents }}",
+              "operation": "contains",
+              "value2": "browser"
+            }
+          ]
+        }
+      },
+      "id": "browser-check",
+      "name": "Browser Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 180]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.target_agents }}",
+              "operation": "contains",
+              "value2": "system"
+            }
+          ]
+        }
+      },
+      "id": "system-check",
+      "name": "System Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.target_agents }}",
+              "operation": "contains",
+              "value2": "ai"
+            }
+          ]
+        }
+      },
+      "id": "ai-check",
+      "name": "AI Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [680, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "const command = $input.first().json.command;\nconst sessionId = $input.first().json.session_id;\n\n// Browser automation logic\nfunction parseBrowserCommand(cmd) {\n  cmd = cmd.toLowerCase();\n  \n  if (cmd.includes('google') || cmd.includes('ara')) {\n    const query = cmd.replace(/.*(?:google|ara)\\s+/, '');\n    return `\ndriver.get('https://www.google.com')\nsearch_box = driver.find_element(By.NAME, 'q')\nsearch_box.send_keys('${query}')\nsearch_box.send_keys(Keys.RETURN)\ntime.sleep(2)\n`;\n  }\n  \n  if (cmd.includes('git') || cmd.includes('website')) {\n    const url = cmd.match(/https?:\\/\\/[^\\s]+/) || ['https://www.google.com'];\n    return `driver.get('${url[0]}')`;\n  }\n  \n  return \"driver.get('https://www.google.com')\";\n}\n\nconst seleniumCode = parseBrowserCommand(command);\n\nreturn {\n  agent: 'BrowserAgent',\n  command: command,\n  selenium_code: seleniumCode,\n  session_id: sessionId,\n  result: `Browser command executed: ${command}`,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "browser-agent",
+      "name": "Browser Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const command = $input.first().json.command;\nconst sessionId = $input.first().json.session_id;\n\n// System command mapping\nconst systemCommands = {\n  'notepad kapat': 'taskkill /F /IM notepad.exe',\n  'notepad aç': 'notepad',\n  'hesap makinesi': 'calc',\n  'görev yöneticisi': 'taskmgr',\n  'sistem bilgisi': 'systeminfo'\n};\n\nfunction parseSystemCommand(cmd) {\n  cmd = cmd.toLowerCase();\n  \n  for (const [key, value] of Object.entries(systemCommands)) {\n    if (cmd.includes(key)) {\n      return value;\n    }\n  }\n  \n  return 'echo System command processed';\n}\n\nconst windowsCommand = parseSystemCommand(command);\n\nreturn {\n  agent: 'SystemAgent',\n  command: command,\n  windows_command: windowsCommand,\n  session_id: sessionId,\n  result: `System command executed: ${windowsCommand}`,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "system-agent",
+      "name": "System Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApiKey",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"Sen VAULT MK7 asistanısın. Kullanıcıya 'Efendim' diye hitap et. Kısa ve net yanıt ver.\\n\\nKullanıcı: {{ $('agent-router').first().json.command }}\"\n    }]\n  }]\n}"
+      },
+      "id": "ai-agent",
+      "name": "AI Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Response coordinator - combines all agent outputs\nconst allInputs = $input.all();\nlet responses = [];\n\nallInputs.forEach(input => {\n  const data = input.json;\n  \n  if (data.agent) {\n    // From code nodes\n    responses.push({\n      agent: data.agent,\n      command: data.command,\n      result: data.result,\n      timestamp: data.timestamp,\n      session_id: data.session_id\n    });\n  } else if (data.candidates) {\n    // From Gemini API\n    responses.push({\n      agent: 'AIAgent',\n      command: $('agent-router').first().json.command,\n      result: data.candidates[0].content.parts[0].text,\n      timestamp: new Date().toISOString(),\n      session_id: $('agent-router').first().json.session_id\n    });\n  }\n});\n\nreturn {\n  vault_version: 'MK7',\n  timestamp: new Date().toISOString(),\n  session_id: responses[0]?.session_id || 'default',\n  agents_executed: responses.length,\n  responses: responses,\n  summary: `VAULT MK7 executed ${responses.length} agent(s) successfully.`,\n  status: 'completed'\n};"
+      },
+      "id": "response-coordinator",
+      "name": "Response Coordinator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "webhook-response",
+      "name": "Response Output",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    }
+  ],
+  "connections": {
+    "webhook-entry": {
+      "main": [
+        [
+          {
+            "node": "agent-router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agent-router": {
+      "main": [
+        [
+          {
+            "node": "browser-check",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "system-check",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ai-check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "browser-check": {
+      "main": [
+        [
+          {
+            "node": "browser-agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "system-check": {
+      "main": [
+        [
+          {
+            "node": "system-agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ai-check": {
+      "main": [
+        [
+          {
+            "node": "ai-agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "browser-agent": {
+      "main": [
+        [
+          {
+            "node": "response-coordinator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "system-agent": {
+      "main": [
+        [
+          {
+            "node": "response-coordinator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ai-agent": {
+      "main": [
+        [
+          {
+            "node": "response-coordinator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "response-coordinator": {
+      "main": [
+        [
+          {
+            "node": "webhook-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

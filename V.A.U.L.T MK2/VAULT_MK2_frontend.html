@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V.A.U.L.T. MK2 Interface</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;700&display=swap');
+        :root {
+            --primary-color: #00e5ff; --secondary-color: #a8b2d1; --dark-bg: #020c1b;
+            --panel-bg: rgba(10, 25, 47, 0.85); --border-glow: 0 0 5px rgba(0, 229, 255, 0.8), 0 0 10px rgba(0, 229, 255, 0.6);
+            --text-glow: 0 0 4px var(--primary-color);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Roboto Mono', monospace; background-color: var(--dark-bg); color: var(--secondary-color);
+            background-image: linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+            background-size: 25px 25px; overflow: hidden;
+        }
+        .hud-container {
+            width: 100vw; height: 100vh; padding: 15px;
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr) 280px;
+            grid-template-rows: 80px 1fr 180px;
+            gap: 15px; position: relative;
+        }
+        .widget-panel {
+            background: var(--panel-bg); border: 1px solid var(--primary-color);
+            box-shadow: var(--border-glow); padding: 15px; overflow: hidden;
+            position: relative; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            display: flex; flex-direction: column;
+        }
+        .widget-panel::before, .widget-panel::after {
+            content: ''; position: absolute; width: 12px; height: 12px;
+            border-style: solid; border-color: var(--primary-color); z-index: 2;
+        }
+        .widget-panel::before { top: -2px; left: -2px; border-width: 2px 0 0 2px; }
+        .widget-panel::after { bottom: -2px; right: -2px; border-width: 0 2px 2px 0; }
+        .widget-title {
+            color: var(--primary-color); text-shadow: var(--text-glow); margin-bottom: 10px;
+            font-size: 1em; text-transform: uppercase;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.3); padding-bottom: 5px;
+            flex-shrink: 0;
+        }
+        #header {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding-top: 5px;
+            font-size: 2.2em; 
+            letter-spacing: 8px;
+        }
+        #header h1 { 
+            color: #fff; 
+            text-shadow: var(--text-glow);
+            display: inline-block;
+        }
+        .animated-glitch { position: relative; animation: glitch-scan 4s infinite linear; }
+        .animated-glitch::before, .animated-glitch::after {
+            content: 'V A U L T'; position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%; background: var(--dark-bg); overflow: hidden;
+        }
+        .animated-glitch::before { left: 2px; text-shadow: -2px 0 #ff00c1; animation: glitch 2s infinite linear reverse; }
+        .animated-glitch::after { left: -2px; text-shadow: -2px 0 var(--primary-color), 2px 2px #ff00c1; animation: glitch 2s infinite linear; }
+        #left-sidebar {
+            grid-column: 1; grid-row: 2 / 4;
+            display: flex; flex-direction: column; gap: 15px;
+            overflow: hidden;
+        }
+        #system-status { flex-shrink: 0; }
+        #system-status p { font-size: 0.9em; margin-bottom: 8px; }
+        #system-status .status-ok { color: #00ff80; font-weight: bold; }
+        #system-status .status-error { color: #ff4d4d; font-weight: bold; }
+        #chat-list-panel { flex-grow: 1; }
+        .chat-list-header { display: flex; justify-content: space-between; align-items: center; }
+        #new-chat-button {
+            background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color);
+            cursor: pointer; padding: 3px 8px; font-family: 'Roboto Mono', monospace;
+        }
+        #new-chat-button:hover { background: var(--primary-color); color: var(--dark-bg); }
+        #chat-list { list-style: none; padding: 0; margin-top: 10px; overflow-y: auto; height: calc(100% - 40px);}
+        .chat-list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px; cursor: pointer; border-bottom: 1px solid rgba(0, 229, 255, 0.1);
+            font-size: 0.9em; position: relative;
+        }
+        .chat-title {
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+        }
+        .chat-list-item:hover { background-color: rgba(0, 229, 255, 0.1); }
+        .chat-list-item.active { background-color: var(--primary-color); color: var(--dark-bg); font-weight: bold;}
+        .chat-item-actions { display: flex; }
+        .pin-chat-btn, .delete-chat-btn {
+            background: none; border: none; color: var(--secondary-color);
+            cursor: pointer; font-size: 1.1em; padding: 0 4px;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .chat-list-item:hover .pin-chat-btn, .chat-list-item:hover .delete-chat-btn { opacity: 0.7; }
+        .pin-chat-btn:hover, .delete-chat-btn:hover { opacity: 1; color: #fff; }
+        .pin-chat-btn.pinned {
+            opacity: 1; color: var(--primary-color);
+        }
+        #chat-panel { grid-column: 2; grid-row: 2 / 4; }
+        #chat-history {
+            flex-grow: 1; overflow-y: auto; padding: 10px;
+            border: 1px solid rgba(0, 229, 255, 0.2); margin-bottom: 10px;
+        }
+        .chat-message { margin-bottom: 15px; max-width: 95%; position: relative;}
+        #chat-form { display: flex; height: 40px; }
+        #chat-input {
+            flex-grow: 1; background: rgba(0,0,0,0.5); border: 1px solid var(--primary-color);
+            color: #fff; padding: 10px; font-family: 'Roboto Mono', monospace; font-size: 1em; outline: none;
+            border-left: none;
+        }
+        #autocad-assistant { grid-column: 3; grid-row: 2; }
+        .action-button-group button {
+            display: block; width: 100%; background: transparent; border: 1px solid var(--primary-color);
+            color: var(--primary-color); padding: 10px; margin-bottom: 10px; cursor: pointer;
+            text-align: left; transition: all 0.2s ease;
+        }
+        .action-button-group button:hover { background: var(--primary-color); color: var(--dark-bg); }
+        #quick-actions { grid-column: 3; grid-row: 3; }
+        #quick-actions button {
+            display: block; width: 100%; background: transparent; border: 1px solid var(--primary-color);
+            color: var(--primary-color); 
+            padding: 8px; margin-bottom: 10px; 
+            cursor: pointer; text-align: center; transition: all 0.2s ease;
+            font-family: 'Roboto Mono', monospace; font-size: 0.9em;
+        }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(2, 12, 27, 0.9);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-box {
+            width: 500px; background: var(--panel-bg); border: 1px solid var(--primary-color);
+            box-shadow: var(--border-glow); padding: 25px; text-align: center;
+        }
+        @keyframes glitch { 0%{clip-path:inset(45% 0 50% 0)}5%{clip-path:inset(6% 0 10% 0)}10%{clip-path:inset(87% 0 1% 0)}15%{clip-path:inset(45% 0 8% 0)}20%{clip-path:inset(51% 0 26% 0)}25%{clip-path:inset(2% 0 69% 0)}30%{clip-path:inset(79% 0 16% 0)}35%{clip-path:inset(5% 0 94% 0)}40%{clip-path:inset(93% 0 3% 0)}45%{clip-path:inset(45% 0 45% 0)}50%{clip-path:inset(10% 0 80% 0)}55%{clip-path:inset(98% 0 2% 0)}60%{clip-path:inset(33% 0 33% 0)}65%{clip-path:inset(0 0 0 0)}70%{clip-path:inset(82% 0 1% 0)}75%{clip-path:inset(40% 0 50% 0)}80%{clip-path:inset(22% 0 70% 0)}85%{clip-path:inset(99% 0 1% 0)}90%{clip-path:inset(60% 0 30% 0)}95%{clip-path:inset(80% 0 5% 0)}100%{clip-path:inset(30% 0 65% 0)} }
+        @keyframes glitch-scan { 0%, 100% { height: 100%; } 50% { height: 5%; } }
+    </style>
+</head>
+<body>
+    <div class="hud-container">
+        <header id="header" class="widget-panel"><h1 class="animated-glitch">V A U L T</h1></header>
+        <div id="left-sidebar">
+            <div id="system-status" class="widget-panel">
+                 <h2 class="widget-title">SYSTEM STATUS</h2>
+                 <p>Vault Protocol: <span class="status-ok">ACTIVE</span></p>
+                 <p>Backend Link: <span id="api-status" class="status-error">INACTIVE</span></p>
+                 <p>Data Core Sync: <span class="status-ok">STABLE</span></p>
+                 <p>System Time: <span id="system-time"></span></p>
+            </div>
+            <div id="chat-list-panel" class="widget-panel">
+                <div class="chat-list-header"><h2 class="widget-title">SOHBET GEÇMİŞİ</h2><button id="new-chat-button">+ Yeni Sohbet</button></div>
+                <ul id="chat-list"></ul>
+            </div>
+        </div>
+        <div id="chat-panel" class="widget-panel">
+            <h2 class="widget-title">COMMUNICATION INTERFACE</h2>
+            <div id="chat-history"></div>
+            <div id="file-preview-container" style="display: none;">
+                <img id="image-preview" src="" alt="Görsel Önizleme"/>
+                <button id="remove-image-button" title="Görseli Kaldır">&times;</button>
+            </div>
+            <form id="chat-form">
+                <label for="file-upload" class="file-upload-label" title="Dosya Yükle">📎</label>
+                <input type="file" id="file-upload" accept="image/*" style="display: none;">
+                <input type="text" id="chat-input" placeholder="İstem girin..." autocomplete="off">
+                <button type="submit" id="send-button">Gönder</button>
+            </form>
+        </div>
+        <div id="autocad-assistant" class="widget-panel">
+            <h2 class="widget-title">AUTOCAD ASİSTANI</h2>
+            <div class="action-button-group">
+                <button data-prompt="Şu AutoCAD komutunu açıkla: ">Komut Açıklaması İste</button>
+                <button data-prompt="AutoCAD'de tekrar eden bir işi otomatikleştirmek için basit bir AutoLISP kodu yaz. Görevim: ">Basit LISP Kodu Yazdır</button>
+                <button data-prompt="AutoCAD'de aşağıdaki iş akışı için adım adım bir kılavuz oluştur: ">Adım Adım Kılavuz İste</button>
+            </div>
+        </div>
+        <div id="quick-actions" class="widget-panel">
+            <h2 class="widget-title">QUICK ACTIONS</h2>
+            <button id="export-chat-button">Sohbeti Dışa Aktar (.txt)</button>
+            <button id="clear-chat-button">Sohbeti Temizle</button>
+            <button id="change-api-key-button">API Anahtarını Değiştir</button>
+        </div>
+    </div>
+    <div id="api-key-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h2 class="widget-title">API Anahtarı Gerekli</h2>
+            <p>Devam etmek için lütfen Google AI Studio API anahtarınızı girin.</p>
+            <input type="password" id="api-key-input" placeholder="API Anahtarınızı buraya yapıştırın...">
+            <button id="save-api-key-button">Kaydet ve Başlat</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            let GEMINI_API_KEY = "";
+            let GOOGLE_API_URL = "";
+            const BACKEND_URL_PING = "http://127.0.0.1:5000/ping";
+            const BACKEND_URL_ASK = "http://127.0.0.1:5000/ask";
+            let allConversations = {};
+            let activeChatId = null;
+            let uploadedFile = null;
+
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
+            const chatHistory = document.getElementById('chat-history');
+            const timeElement = document.getElementById('system-time');
+            const sendButton = document.getElementById('send-button');
+            const apiStatusElement = document.getElementById('api-status');
+            const clearChatButton = document.getElementById('clear-chat-button');
+            const exportChatButton = document.getElementById('export-chat-button');
+            const apiKeyModal = document.getElementById('api-key-modal');
+            const apiKeyInput = document.getElementById('api-key-input');
+            const saveApiKeyButton = document.getElementById('save-api-key-button');
+            const changeApiKeyButton = document.getElementById('change-api-key-button');
+            const fileUploadInput = document.getElementById('file-upload');
+            const filePreviewContainer = document.getElementById('file-preview-container');
+            const imagePreview = document.getElementById('image-preview');
+            const removeImageButton = document.getElementById('remove-image-button');
+            const newChatButton = document.getElementById('new-chat-button');
+            const chatList = document.getElementById('chat-list');
+            const autocadAssistantButtons = document.querySelectorAll('#autocad-assistant button');
+
+            function appendMessage(sender, text, isNew = true) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('chat-message');
+                const senderClass = sender.toLowerCase() === 'user' ? 'user-message' : 'gemini-message';
+                messageDiv.classList.add(senderClass);
+                
+                const senderP = document.createElement('p');
+                senderP.style.fontWeight = 'bold';
+                senderP.textContent = sender === 'User' ? 'User:' : '[VAULT]:';
+                
+                const textP = document.createElement('p');
+                textP.style.paddingLeft = '10px';
+                if(senderClass === 'gemini-message') textP.style.color = '#fff';
+                textP.textContent = text;
+                
+                messageDiv.appendChild(senderP);
+                messageDiv.appendChild(textP);
+                chatHistory.appendChild(messageDiv);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+                return messageDiv;
+            }
+
+            function setupApi(apiKey) {
+                GEMINI_API_KEY = apiKey;
+                GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${GEMINI_API_KEY}`;
+            }
+
+            async function handleUserPrompt() {
+                const promptText = chatInput.value.trim();
+                if ((promptText === '' && !uploadedFile) || sendButton.disabled) return;
+                
+                sendButton.disabled = true;
+                appendMessage('User', (uploadedFile ? "[Görsel] " : "") + promptText);
+                const thinkingMessage = appendMessage('[VAULT]', 'Komut yönlendiriliyor...');
+                
+                try {
+                    const backendResponse = await fetch(BACKEND_URL_ASK, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: promptText })
+                    });
+                    if (!backendResponse.ok) throw new Error("Yerel sunucuya bağlanılamadı.");
+                    
+                    const data = await backendResponse.json();
+                    
+                    if (data.type === 'local_command') {
+                        thinkingMessage.remove();
+                        appendMessage('[VAULT]', data.message);
+                    } else if (data.type === 'gemini_query') {
+                        if (!GEMINI_API_KEY) {
+                           throw new Error("Gemini API Anahtarı ayarlanmamış. Lütfen Quick Actions menüsünden ayarlayın.");
+                        }
+                        thinkingMessage.querySelector('p:last-child').textContent = 'Gemini ile iletişim kuruluyor...';
+                        const geminiResponseText = await askGeminiDirectly(data.prompt);
+                        thinkingMessage.remove();
+                        appendMessage('[VAULT]', geminiResponseText);
+                    }
+                } catch (error) {
+                    thinkingMessage.remove();
+                    appendMessage('[VAULT]', `Hata: ${error.message}`);
+                } finally {
+                    sendButton.disabled = false;
+                    removeUploadedFile();
+                    chatInput.value = '';
+                    chatInput.focus();
+                }
+            }
+            
+            async function askGeminiDirectly(prompt) {
+                const currentConv = allConversations[activeChatId];
+                const userParts = [];
+                if (uploadedFile) userParts.push({ inline_data: { mime_type: uploadedFile.mimeType, data: uploadedFile.data } });
+                if (prompt) userParts.push({ text: prompt });
+                
+                currentConv.history.push({ role: "user", parts: userParts });
+                
+                if (currentConv.history.length === 1 && prompt) {
+                    currentConv.title = prompt.length > 30 ? prompt.substring(0, 27) + '...' : prompt;
+                    renderChatList();
+                }
+                
+                const response = await fetch(GOOGLE_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: currentConv.history })
+                });
+
+                if (!response.ok) { const errorData = await response.json(); throw new Error(`Gemini API Hatası: ${errorData.error.message}`); }
+                const data = await response.json();
+                if (!data.candidates || data.candidates.length === 0) { throw new Error("Modelden yanıt alınamadı."); }
+                
+                const geminiText = data.candidates[0].content.parts[0].text;
+                currentConv.history.push(data.candidates[0].content);
+                saveConversations();
+                return geminiText;
+            }
+            
+            function initialize() {
+                const savedApiKey = localStorage.getItem('geminiApiKey');
+                if (savedApiKey) {
+                    setupApi(savedApiKey);
+                } else {
+                    apiKeyModal.style.display = 'flex';
+                }
+
+                fetch(BACKEND_URL_PING)
+                    .then(res => {
+                        if(res.ok) {
+                            apiStatusElement.textContent = 'ACTIVE';
+                            apiStatusElement.className = 'status-ok';
+                            if(!localStorage.getItem('geminiApiKey')) {
+                                appendMessage('[VAULT]', 'MK2 Çekirdeğine bağlanıldı. Lütfen API anahtarınızı girin.');
+                            } else {
+                                appendMessage('[VAULT]', 'Tüm sistemler çevrimiçi. Sorgunuz bekleniyor.');
+                            }
+                        } else {
+                           throw new Error('Backend yanıt vermiyor.');
+                        }
+                    }).catch(err => {
+                         appendMessage('[VAULT]', 'HATA: MK2 Çekirdeğine bağlanılamadı. Lütfen python sunucusunun çalıştığından emin olun.');
+                         apiStatusElement.textContent = 'ERROR';
+                         apiStatusElement.className = 'status-error';
+                    });
+                
+                loadConversations();
+                setInterval(() => {
+                    const now = new Date();
+                    timeElement.textContent = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                }, 1000);
+            }
+
+            chatForm.addEventListener('submit', (e) => { e.preventDefault(); handleUserPrompt(); });
+            
+            // Diğer tüm fonksiyonlar ve event listenerlar buraya eklenecek...
+
+            initialize();
+        });
+    </script>
+</body>
+</html>
