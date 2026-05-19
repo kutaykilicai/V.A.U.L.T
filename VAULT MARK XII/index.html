@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V.A.U.L.T. MARK XI</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+<style>
+:root{
+--bg:#00060a;--panel:#010d14;--panel2:#010f18;
+--border:#0d3347;--border-b:#1a5c7a;--border-a:#0f4060;
+--primary:#00d4ff;--primary-dim:#007a99;--primary-ghost:#001f2e;
+--accent:#ff6b00;--accent2:#ffcc00;
+--green:#00ff88;--green-dark:#00aa55;
+--red:#ff3355;--muted-c:#ff3366;
+--text:#8ffcff;--text-dim:#3a8a9a;--text-med:#5ab8cc;
+--white:#d8f8ff;--dark:#000d14;--bar-bg:#011520;
+--kimi-col:#00ff88;--gemini-col:#ffcc00;--claude-col:#00d4ff;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Courier New',monospace;overflow:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bar-bg)}
+::-webkit-scrollbar-thumb{background:var(--border-b);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--primary-dim)}
+.grid-bg{background-image:radial-gradient(circle,var(--primary-ghost) 1px,transparent 1px);background-size:48px 48px}
+
+#app{display:flex;flex-direction:column;height:100vh}
+
+#header{height:54px;min-height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--border);background:var(--panel);z-index:10}
+.header-left{display:flex;align-items:center;gap:10px}
+.header-logo{font-size:16px;font-weight:bold;color:var(--primary);letter-spacing:2px;text-shadow:0 0 12px var(--primary)}
+.header-logo span{color:var(--accent)}
+#conn-status{font-size:11px;letter-spacing:1px;display:flex;align-items:center;gap:5px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);transition:all .3s}
+.status-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+#clock{font-size:14px;color:var(--primary-dim);letter-spacing:2px;font-variant-numeric:tabular-nums}
+
+#main{flex:1;display:flex;min-height:0;overflow:hidden}
+
+#footer{height:22px;min-height:22px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-top:1px solid var(--border);background:var(--panel);font-size:10px;color:var(--text-dim)}
+.footer-shortcuts{display:flex;gap:12px}
+.footer-shortcuts kbd{background:var(--primary-ghost);border:1px solid var(--border-b);border-radius:2px;padding:0 4px;color:var(--text-med);font-family:'Courier New',monospace;font-size:9px}
+
+/* LEFT PANEL */
+#left-panel{width:155px;min-width:155px;display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--panel);overflow:hidden}
+.panel-header{display:flex;align-items:center;padding:6px 10px;border-bottom:1px solid var(--border);background:var(--dark);font-size:10px;font-weight:bold;letter-spacing:2px;color:var(--primary-dim);white-space:nowrap}
+.ph-icon{color:var(--primary);margin-right:5px}
+.sys-metrics{padding:8px 8px 4px;display:flex;flex-direction:column;gap:5px}
+.metric-item{display:flex;flex-direction:column;gap:2px}
+.metric-label-row{display:flex;justify-content:space-between;align-items:center}
+.metric-label{font-size:9px;color:var(--text-dim);letter-spacing:1px}
+.metric-val{font-size:9px;color:var(--primary);font-variant-numeric:tabular-nums}
+.metric-bar-track{height:4px;background:var(--bar-bg);border-radius:2px;overflow:hidden;border:1px solid var(--border)}
+.metric-bar-fill{height:100%;width:0%;border-radius:2px;transition:width .4s ease,background-color .4s ease}
+.sys-info{padding:6px 8px;border-top:1px solid var(--border);font-size:9px;color:var(--text-dim)}
+.sys-info-row{display:flex;justify-content:space-between;margin-bottom:3px}
+.sys-info-val{color:var(--text-med)}
+.sys-badges{padding:6px 8px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px;margin-top:auto}
+.sys-badge{font-size:8px;letter-spacing:1px;padding:2px 5px;border:1px solid var(--border);border-radius:2px;color:var(--text-dim);background:var(--dark)}
+.sys-badge.conn-claude{border-color:var(--primary-dim);color:var(--primary)}
+.sys-badge.conn-kimi{border-color:var(--green-dark);color:var(--green)}
+.sys-badge.conn-gemini{border-color:#887700;color:var(--accent2)}
+.sys-badge.conn-mem{border-color:var(--border-b);color:var(--primary)}
+
+/* CENTER PANEL */
+#center-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--panel2)}
+#hud-area{height:160px;min-height:160px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border);background:var(--dark);position:relative;overflow:hidden;transition:height .25s ease,min-height .25s ease}
+#hud-area.collapsed{height:28px;min-height:28px}
+#hud-area.collapsed #hud-canvas{opacity:0;pointer-events:none}
+#hud-toggle{position:absolute;top:5px;right:8px;background:transparent;border:1px solid var(--border);color:var(--text-dim);font-size:9px;letter-spacing:1px;padding:2px 7px;cursor:pointer;border-radius:2px;font-family:'Courier New',monospace;z-index:2}
+#hud-toggle:hover{background:var(--primary-ghost);color:var(--primary);border-color:var(--border-b)}
+#terminal-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;background:var(--dark)}
+.term-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0}
+.term-tab{font-family:'Courier New',monospace;font-size:10px;font-weight:bold;letter-spacing:1.5px;padding:7px 14px;background:transparent;border:none;border-right:1px solid var(--border);border-bottom:2px solid transparent;cursor:pointer;color:var(--text-dim);transition:all .15s;display:flex;align-items:center;gap:6px}
+.term-tab:hover{background:var(--primary-ghost)}
+.term-tab.active{background:var(--dark);color:var(--primary);border-bottom-color:var(--primary)}
+.term-tab[data-model="kimi"].active{color:var(--kimi-col);border-bottom-color:var(--kimi-col)}
+.term-tab[data-model="gemini"].active{color:var(--gemini-col);border-bottom-color:var(--gemini-col)}
+.tab-dot{width:6px;height:6px;border-radius:50%;background:var(--text-dim);transition:all .3s;flex-shrink:0}
+.term-tab.active .tab-dot{background:var(--red);box-shadow:0 0 4px var(--red)}
+.tab-dot.dot-ok{background:var(--green)!important;box-shadow:0 0 5px var(--green)!important}
+#term-stack{flex:1;position:relative;overflow:hidden;min-height:0}
+.term-pane{position:absolute;inset:0;visibility:hidden;pointer-events:none;background:var(--dark);padding:3px;overflow:hidden;display:flex;flex-direction:column}
+.term-pane.active{visibility:visible;pointer-events:auto}
+.term-pane .xterm{flex:1;min-height:0;overflow:hidden}
+.term-pane .xterm-viewport{background:#000d14!important}
+.term-pane .xterm-screen canvas{background:#000d14!important}
+
+/* RIGHT PANEL */
+#right-panel{width:340px;min-width:340px;display:flex;flex-direction:column;border-left:1px solid var(--border);background:var(--panel);overflow:hidden}
+#activity-log-panel{flex:0 0 60%;display:flex;flex-direction:column;border-bottom:1px solid var(--border);overflow:hidden}
+#activity-log{flex:1;overflow-y:auto;padding:6px 8px;font-size:10px;line-height:1.65;background:var(--panel)}
+.log-line{display:flex;gap:5px;margin-bottom:1px;word-break:break-word}
+.log-time{color:var(--text-dim);flex-shrink:0;font-size:9px;opacity:.6;font-variant-numeric:tabular-nums}
+.log-type{flex-shrink:0;font-size:9px;font-weight:bold;min-width:42px}
+.log-type.you{color:var(--primary)}.log-type.vault{color:var(--text-med)}.log-type.file{color:var(--accent2)}.log-type.error{color:var(--red)}.log-type.sys{color:var(--text-dim)}
+.log-msg.you{color:var(--primary)}.log-msg.vault{color:var(--text)}.log-msg.file{color:var(--accent2)}.log-msg.error{color:var(--red)}.log-msg.sys{color:var(--text-dim)}
+#file-upload-panel{flex:0 0 40%;display:flex;flex-direction:column;overflow:hidden}
+.file-upload-inner{flex:1;display:flex;flex-direction:column;padding:8px;gap:6px;overflow-y:auto}
+#file-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;border:1.5px dashed var(--border-b);border-radius:4px;padding:14px 8px;cursor:pointer;gap:4px;background:var(--dark);transition:all .15s}
+#file-drop:hover,#file-drop.dragover{background:var(--primary-ghost);border-color:var(--primary)}
+#file-drop .drop-icon{font-size:20px;color:var(--primary-dim)}
+#file-drop .drop-label{font-size:9px;color:var(--text-dim);letter-spacing:1px;text-align:center}
+#file-list{display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.file-item{display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--primary-ghost);border:1px solid var(--border);border-radius:2px;font-size:9px}
+.file-item-name{flex:1;color:var(--text-med);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-item-size{color:var(--text-dim);font-variant-numeric:tabular-nums}
+.file-route-btns{display:flex;gap:3px;padding:2px 6px 5px;flex-wrap:wrap}
+.route-btn{font-size:8px;font-family:'Courier New',monospace;letter-spacing:1px;padding:2px 7px;border:1px solid;border-radius:2px;cursor:pointer;background:transparent;transition:all .15s}
+.route-btn:hover{filter:brightness(1.3)}
+.route-btn:active{transform:scale(.97)}
+.route-claude{border-color:var(--claude-col);color:var(--claude-col)}
+.route-claude:hover{background:rgba(0,212,255,.12)}
+.route-kimi{border-color:var(--kimi-col);color:var(--kimi-col)}
+.route-kimi:hover{background:rgba(0,255,136,.12)}
+.route-gemini{border-color:var(--gemini-col);color:var(--gemini-col)}
+.route-gemini:hover{background:rgba(255,204,0,.12)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<header id="header">
+  <div class="header-left">
+    <span class="header-logo">◈ V.A.U.L.T. <span>MARK XII</span></span>
+    <div id="conn-status"><span class="status-dot" id="conn-dot"></span><span id="conn-label">OFFLINE</span></div>
+  </div>
+  <div id="clock">00:00:00</div>
+</header>
+
+<div id="main">
+
+  <div id="left-panel" class="grid-bg">
+    <div class="panel-header"><span class="ph-icon">◈</span> SYS MONITOR</div>
+    <div class="sys-metrics">
+      <div class="metric-item">
+        <div class="metric-label-row"><span class="metric-label">CPU</span><span class="metric-val" id="val-cpu">0%</span></div>
+        <div class="metric-bar-track"><div class="metric-bar-fill" id="bar-cpu"></div></div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label-row"><span class="metric-label">MEM</span><span class="metric-val" id="val-mem">0%</span></div>
+        <div class="metric-bar-track"><div class="metric-bar-fill" id="bar-mem"></div></div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label-row"><span class="metric-label">NET</span><span class="metric-val" id="val-net">0 KB/s</span></div>
+        <div class="metric-bar-track"><div class="metric-bar-fill" id="bar-net"></div></div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label-row"><span class="metric-label">GPU</span><span class="metric-val" id="val-gpu">0%</span></div>
+        <div class="metric-bar-track"><div class="metric-bar-fill" id="bar-gpu"></div></div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label-row"><span class="metric-label">TMP</span><span class="metric-val" id="val-tmp">0°C</span></div>
+        <div class="metric-bar-track"><div class="metric-bar-fill" id="bar-tmp"></div></div>
+      </div>
+    </div>
+    <div class="sys-info">
+      <div class="sys-info-row"><span>UPTIME</span><span class="sys-info-val" id="sys-uptime">--:--</span></div>
+      <div class="sys-info-row"><span>PROCS</span><span class="sys-info-val" id="sys-procs">--</span></div>
+    </div>
+    <div class="sys-badges">
+      <div class="sys-badge conn-mem" id="badge-mem">◈ MEMORY LINKED</div>
+      <div class="sys-badge" id="badge-claude">▷ CLAUDE</div>
+      <div class="sys-badge" id="badge-kimi">▷ KIMI</div>
+      <div class="sys-badge" id="badge-gemini">▷ GEMINI</div>
+    </div>
+  </div>
+
+  <div id="center-panel">
+    <div id="hud-area" class="grid-bg">
+      <canvas id="hud-canvas"></canvas>
+      <button id="hud-toggle">▼ COLLAPSE</button>
+    </div>
+    <div id="terminal-area">
+      <div class="term-tabs">
+        <button class="term-tab active" data-model="claude">
+          <span class="tab-dot" id="dot-claude"></span> ◈ CLAUDE CODE
+        </button>
+        <button class="term-tab" data-model="kimi">
+          <span class="tab-dot" id="dot-kimi"></span> KIMI
+        </button>
+        <button class="term-tab" data-model="gemini">
+          <span class="tab-dot" id="dot-gemini"></span> GEMINI
+        </button>
+      </div>
+      <div id="term-stack">
+        <div class="term-pane active" id="pane-claude"></div>
+        <div class="term-pane" id="pane-kimi"></div>
+        <div class="term-pane" id="pane-gemini"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="right-panel" class="grid-bg">
+    <div id="activity-log-panel">
+      <div class="panel-header"><span class="ph-icon">◈</span> ACTIVITY LOG</div>
+      <div id="activity-log"></div>
+    </div>
+    <div id="file-upload-panel">
+      <div class="panel-header"><span class="ph-icon">⬇</span> FILE UPLOAD</div>
+      <div class="file-upload-inner">
+        <div id="file-drop">
+          <span class="drop-icon">⬇</span>
+          <span class="drop-label">DROP FILES OR CLICK</span>
+          <span style="font-size:8px;color:var(--border-b);letter-spacing:1px">ANY FORMAT</span>
+        </div>
+        <div id="file-list"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer id="footer">
+  <div class="footer-shortcuts">
+    <span><kbd>Ctrl+1</kbd> CLAUDE</span>
+    <span><kbd>Ctrl+2</kbd> KIMI</span>
+    <span><kbd>Ctrl+3</kbd> GEMINI</span>
+  </div>
+  <span style="color:var(--primary-dim);letter-spacing:1px">V.A.U.L.T. MARK XII v12.0.0 — Virtual Assistant for Universal &amp; Local Tasks</span>
+</footer>
+
+</div>
+<input type="file" id="file-input" multiple style="display:none">
+
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+<script>
+(function(){
+'use strict';
+
+const GEMINI_KEY = 'AIzaSyAcJlmkqGmMjAHn67noGFLNmBYE0-3Gkgc';
+const BACKEND = 'localhost:8765';
+
+const XTERM_THEME = {
+  background:'#000d14', foreground:'#8ffcff',
+  cursor:'#00d4ff', cursorAccent:'#000d14',
+  selectionBackground:'rgba(0,212,255,0.25)',
+  black:'#000d14',    red:'#ff3355',   green:'#00ff88', yellow:'#ffcc00',
+  blue:'#007a99',     magenta:'#ff6b00', cyan:'#00d4ff', white:'#d8f8ff',
+  brightBlack:'#3a8a9a', brightRed:'#ff3355', brightGreen:'#00ff88', brightYellow:'#ffcc00',
+  brightBlue:'#00d4ff',  brightMagenta:'#ff6b00', brightCyan:'#8ffcff', brightWhite:'#d8f8ff',
+};
+
+const $ = id => document.getElementById(id);
+
+// ── Clock ──────────────────────────────────────────────────────────────────
+function tick(){
+  const d=new Date();
+  $('clock').textContent = [d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+}
+setInterval(tick,1000); tick();
+
+// ── HUD Canvas ─────────────────────────────────────────────────────────────
+class VaultHUD {
+  constructor(canvas){
+    this.canvas=canvas; this.ctx=canvas.getContext('2d');
+    this.state='idle'; this.t=0; this.symBlink=0;
+    this.rings=[
+      {r:.28,spd:.003,arc:1.2,col:'primary',a:0},
+      {r:.33,spd:-.005,arc:.8,col:'border-b',a:1.0},
+      {r:.38,spd:.007,arc:1.5,col:'primary-dim',a:.5},
+      {r:.44,spd:-.004,arc:.6,col:'accent',a:2.1},
+      {r:.49,spd:.009,arc:1.0,col:'green-dark',a:.3},
+      {r:.54,spd:-.006,arc:1.8,col:'border-b',a:1.7},
+      {r:.60,spd:.005,arc:.9,col:'primary',a:.9},
+    ];
+    this.scanners=[{a:0,spd:.025,col:'primary'},{a:Math.PI,spd:-.018,col:'green-dark'}];
+    this.particles=[]; this.pulseRings=[];
+    this.W=0;this.H=0;this.CX=0;this.CY=0;this.R=0;
+    this.resize();
+    requestAnimationFrame(this.frame.bind(this));
+  }
+  C(n){
+    const m={'primary':'#00d4ff','primary-dim':'#007a99','border-b':'#1a5c7a',
+      'accent':'#ff6b00','accent2':'#ffcc00','green':'#00ff88','green-dark':'#00aa55',
+      'red':'#ff3355','text':'#8ffcff','text-dim':'#3a8a9a'};
+    return m[n]||'#00d4ff';
+  }
+  setState(s){
+    if(this.state===s)return;
+    this.state=s;
+    if(s==='processing')for(let i=0;i<8;i++)this.spawn(true);
+    if(s==='done'){
+      this.pulseRings.push({r:0,maxR:this.R*.7,alpha:1,col:this.C('green')});
+      setTimeout(()=>{if(this.state==='done')this.state='idle';},800);
+    }
+    if(s==='error'){
+      this.pulseRings.push({r:0,maxR:this.R*.6,alpha:1,col:this.C('red')});
+      setTimeout(()=>{if(this.state==='error')this.state='idle';},1200);
+    }
+  }
+  spawn(burst=false){
+    const a=Math.random()*Math.PI*2, spd=burst?1.5+Math.random()*2:.5+Math.random();
+    const life=burst?.8+Math.random()*.4:.6+Math.random()*.6;
+    this.particles.push({x:this.CX,y:this.CY,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,life,ml:life,sz:burst?2.5:1.5});
+  }
+  resize(){
+    const p=this.canvas.parentElement, sz=Math.min(p.clientWidth*.9,240);
+    this.canvas.width=sz; this.canvas.height=sz;
+    this.W=sz;this.H=sz;this.CX=sz/2;this.CY=sz/2;this.R=sz/2*.88;
+  }
+  frame(){
+    this.t+=.016; this.symBlink+=.05;
+    const ctx=this.ctx,{CX,CY,R,W,H,state}=this;
+    ctx.clearRect(0,0,W,H);
+    const proc=state==='processing';
+    const sc={'idle':this.C('primary'),'processing':this.C('accent'),'done':this.C('green'),'error':this.C('red')}[state]||this.C('primary');
+    ctx.strokeStyle='rgba(0,212,255,0.1)';ctx.lineWidth=.8;
+    ctx.beginPath();ctx.moveTo(0,CY);ctx.lineTo(W,CY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(CX,0);ctx.lineTo(CX,H);ctx.stroke();
+    for(let i=0;i<36;i++){
+      const a=i*10*Math.PI/180,maj=i%3===0;
+      const r1=R*(maj?.80:.86),r2=R*.94;
+      ctx.strokeStyle=maj?'rgba(0,212,255,.35)':'rgba(0,212,255,.15)';
+      ctx.lineWidth=maj?1.5:.8;
+      ctx.beginPath();ctx.moveTo(CX+Math.cos(a)*r1,CY+Math.sin(a)*r1);ctx.lineTo(CX+Math.cos(a)*r2,CY+Math.sin(a)*r2);ctx.stroke();
+    }
+    const sm=proc?2.5:1;
+    this.rings.forEach(ring=>{
+      ring.a+=ring.spd*sm;
+      let col=this.C(ring.col);
+      if(proc&&ring.col==='primary')col=this.C('accent');
+      const al=proc?.7:.5;
+      ctx.strokeStyle=col+Math.round(al*255).toString(16).padStart(2,'0');
+      ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(CX,CY,ring.r*R,ring.a,ring.a+ring.arc);ctx.stroke();
+    });
+    this.scanners.forEach(sc2=>{
+      sc2.a+=sc2.spd*(proc?2:1);
+      const c=proc?this.C('accent2'):this.C(sc2.col);
+      ctx.strokeStyle=c+'cc';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(CX,CY,R*.72,sc2.a,sc2.a+.4);ctx.stroke();
+      ctx.strokeStyle=c+'44';ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(CX,CY,R*.72,sc2.a,sc2.a+.25);ctx.stroke();
+    });
+    const bk=16,bo=R*.94;
+    const corners=[[-bo,-bo,1,1],[bo,-bo,-1,1],[-bo,bo,1,-1],[bo,bo,-1,-1]];
+    ctx.strokeStyle='rgba(0,212,255,.4)';ctx.lineWidth=1.5;
+    corners.forEach(([ox,oy,hd,vd])=>{
+      const x=CX+ox,y=CY+oy;
+      ctx.beginPath();ctx.moveTo(x+hd*bk,y);ctx.lineTo(x,y);ctx.lineTo(x,y+vd*bk);ctx.stroke();
+    });
+    this.pulseRings=this.pulseRings.filter(pr=>{
+      pr.r+=R*.022;pr.alpha-=.03;if(pr.alpha<=0)return false;
+      ctx.strokeStyle=pr.col+Math.round(pr.alpha*255).toString(16).padStart(2,'0');
+      ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(CX,CY,pr.r,0,Math.PI*2);ctx.stroke();
+      return true;
+    });
+    if(proc&&Math.random()<.15)this.spawn();
+    if(Math.random()<.03)this.spawn();
+    this.particles=this.particles.filter(p=>{
+      p.x+=p.vx;p.y+=p.vy;p.life-=.025;if(p.life<=0)return false;
+      const lr=p.life/p.ml, col=proc?this.C('accent2'):this.C('primary');
+      ctx.fillStyle=col+Math.round(lr*200).toString(16).padStart(2,'0');
+      ctx.beginPath();ctx.arc(p.x,p.y,p.sz*lr,0,Math.PI*2);ctx.fill();
+      return true;
+    });
+    const ps=1+Math.sin(this.t*3)*.06, gR=R*.12*ps;
+    const grd=ctx.createRadialGradient(CX,CY,0,CX,CY,gR*1.8);
+    grd.addColorStop(0,sc+'66');grd.addColorStop(1,sc+'00');
+    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(CX,CY,gR*1.8,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=sc+'cc';ctx.lineWidth=2;ctx.beginPath();ctx.arc(CX,CY,gR,0,Math.PI*2);ctx.stroke();
+    const sym={idle:'◈',processing:'▷',done:'●',error:'⊘'}[state]||'◈';
+    const sa=state==='idle'?(.7+Math.sin(this.symBlink)*.3):1;
+    ctx.fillStyle=sc+Math.round(sa*255).toString(16).padStart(2,'0');
+    ctx.font=`bold ${Math.round(R*.14)}px 'Courier New',monospace`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(sym,CX,CY);
+    requestAnimationFrame(this.frame.bind(this));
+  }
+}
+
+const hud = new VaultHUD($('hud-canvas'));
+window.addEventListener('resize',()=>{ hud.resize(); Object.values(terminals).forEach(t=>t.fitToContainer()); });
+
+// ── Sys Metrics ────────────────────────────────────────────────────────────
+function barColor(p){ return p<65?'#00ff88':p<85?'#ff6b00':'#ff3355'; }
+function updateMetric(id,val,max){
+  const pct=Math.min(100,Math.max(0,(val/max)*100));
+  const bar=$('bar-'+id), v=$('val-'+id);
+  if(!bar||!v)return;
+  bar.style.width=pct+'%'; bar.style.background=barColor(pct);
+  if(id==='tmp') v.textContent=Math.round(val)+'°C';
+  else if(id==='net') v.textContent=val>=1024?(val/1024).toFixed(1)+' MB/s':Math.round(val)+' KB/s';
+  else v.textContent=Math.round(pct)+'%';
+}
+
+let metricsConnected=false;
+function connectMetrics(){
+  const ws=new WebSocket(`ws://${BACKEND}/ws/metrics`);
+  ws.onopen=()=>{ metricsConnected=true; updateHeaderConn(); };
+  ws.onmessage=e=>{
+    try{
+      const d=JSON.parse(e.data);
+      if(d.cpu!=null) updateMetric('cpu',d.cpu,100);
+      if(d.mem!=null) updateMetric('mem',d.mem,100);
+      if(d.net_kb!=null) updateMetric('net',d.net_kb,2048);
+      if(d.gpu!=null) updateMetric('gpu',d.gpu,100);
+      if(d.tmp!=null) updateMetric('tmp',d.tmp,120);
+      if(d.uptime) $('sys-uptime').textContent=d.uptime;
+      if(d.procs) $('sys-procs').textContent=d.procs;
+    }catch(e){}
+  };
+  ws.onclose=()=>{ metricsConnected=false; updateHeaderConn(); setTimeout(connectMetrics,3000); };
+  ws.onerror=()=>{};
+}
+
+// ── Header conn status ──────────────────────────────────────────────────────
+function updateHeaderConn(){
+  const anyConn = metricsConnected || Object.values(termStatus).some(Boolean);
+  const dot=$('conn-dot'), lbl=$('conn-label');
+  dot.className='status-dot'+(anyConn?' ok':'');
+  lbl.textContent=metricsConnected?'ONLINE':'OFFLINE';
+}
+
+const termStatus={claude:false,kimi:false,gemini:false};
+function setTermStatus(model,ok){
+  termStatus[model]=ok;
+  updateHeaderConn();
+  const dot=$('dot-'+model);
+  if(dot){ dot.className='tab-dot'+(ok?' dot-ok':''); }
+  const badge=$('badge-'+model);
+  if(badge){
+    badge.textContent=(ok?'● ':'▷ ')+(model==='claude'?'CLAUDE':model==='kimi'?'KIMI':'GEMINI');
+    badge.className='sys-badge conn-'+(ok?model:'');
+  }
+}
+
+// ── Activity Log ────────────────────────────────────────────────────────────
+const actLog=$('activity-log');
+let logBusy=false, logQ=[];
+function processLogQ(){
+  if(logBusy||logQ.length===0)return;
+  logBusy=true;
+  const {type,msg}=logQ.shift();
+  const d=new Date();
+  const ts=[d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+  const line=document.createElement('div'); line.className='log-line';
+  const t_=document.createElement('span'); t_.className='log-time'; t_.textContent=ts;
+  const ty=document.createElement('span'); ty.className='log-type '+type.toLowerCase(); ty.textContent=type;
+  const m=document.createElement('span'); m.className='log-msg '+type.toLowerCase();
+  line.append(t_,ty,m); actLog.appendChild(line); actLog.scrollTop=actLog.scrollHeight;
+  let i=0;
+  function next(){ if(i<msg.length){ m.textContent+=msg[i++]; actLog.scrollTop=actLog.scrollHeight; setTimeout(next,4); } else { logBusy=false; processLogQ(); } }
+  next();
+}
+function logActivity(type,msg){ logQ.push({type,msg}); processLogQ(); }
+
+// ── File Upload ──────────────────────────────────────────────────────────────
+const fileList=$('file-list'), fileDrop=$('file-drop'), fileInp=$('file-input');
+fileDrop.addEventListener('click',()=>fileInp.click());
+fileInp.addEventListener('change',()=>{ handleFiles(fileInp.files); fileInp.value=''; });
+fileDrop.addEventListener('dragover',e=>{ e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave',()=>fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop',e=>{ e.preventDefault(); fileDrop.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+function fmtSz(n){ return n<1024?n+'B':n<1048576?(n/1024).toFixed(1)+'KB':(n/1048576).toFixed(1)+'MB'; }
+
+const TEXT_EXT=/\.(txt|md|py|js|ts|mjs|json|yaml|yml|csv|log|html|css|sh|bat|ps1|ini|toml|xml|sql|rs|go|java|c|cpp|h|tsx|jsx|vue|svelte|rb|php|kt|swift)$/i;
+const UPLOADS_BASE='C:\\Users\\Kutay\\Desktop\\Ai projeler\\VAULT MARK XII\\uploads\\';
+
+function handleFiles(files){
+  if(!files||!files.length)return;
+  for(const f of files){
+    const sz=fmtSz(f.size);
+    const el=document.createElement('div'); el.className='file-item';
+    el.innerHTML=`<span style="color:var(--accent2)">◈</span><span class="file-item-name">${f.name}</span><span class="file-item-size">${sz}</span>`;
+    fileList.appendChild(el);
+    logActivity('FILE','Uploading: '+f.name);
+    const fd=new FormData(); fd.append('file',f);
+    const isText = TEXT_EXT.test(f.name) && f.size < 51200;
+    if(isText){
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        const content=ev.target.result;
+        fetch(`http://${BACKEND}/api/upload`,{method:'POST',body:fd})
+          .then(r=>r.json()).then(d=>{ logActivity('FILE','Saved: '+d.filename); _addRouteBtns(el,d.filename,content); })
+          .catch(()=>logActivity('FILE',f.name+' (backend offline)'));
+      };
+      reader.readAsText(f);
+    } else {
+      fetch(`http://${BACKEND}/api/upload`,{method:'POST',body:fd})
+        .then(r=>r.json()).then(d=>{ logActivity('FILE','Saved: '+d.filename); _addRouteBtns(el,d.filename,null); })
+        .catch(()=>logActivity('FILE',f.name+' (backend offline)'));
+    }
+  }
+}
+
+function _addRouteBtns(el,filename,content){
+  const btns=document.createElement('div'); btns.className='file-route-btns';
+  ['claude','kimi','gemini'].forEach(m=>{
+    const b=document.createElement('button');
+    b.className=`route-btn route-${m}`;
+    b.textContent=`→ ${m.toUpperCase()}`;
+    b.onclick=()=>routeFileTo(filename,content,m);
+    btns.appendChild(b);
+  });
+  el.after(btns);
+}
+
+function routeFileTo(filename,content,model){
+  switchTab(model);
+  const term=terminals[model];
+  const fullPath=UPLOADS_BASE+filename;
+  setTimeout(()=>{
+    let msg;
+    if(content && content.length<=3000){
+      msg=`[FILE: ${filename}]\n${content}`;
+    } else if(content){
+      msg=`[FILE: ${filename} — first 3000 chars]\n${content.substring(0,3000)}\n...(truncated)`;
+    } else {
+      msg=`Please read this file for context: ${fullPath}`;
+    }
+    if(term.apiMode && model==='gemini'){
+      term.apiBuffer=msg;
+      term.term.write('\r\n\x1b[33m[File loaded — press Enter to send]\x1b[0m\r\n\x1b[33m> \x1b[0m');
+    } else if(term.ws && term.ws.readyState===WebSocket.OPEN){
+      term.ws.send(msg+'\r');
+    } else {
+      logActivity('ERROR',model.toUpperCase()+' not connected — open that tab first');
+    }
+    logActivity('FILE',`${filename} → ${model.toUpperCase()}`);
+  },350);
+}
+
+// ── Model Terminal ───────────────────────────────────────────────────────────
+class ModelTerminal {
+  constructor(model, paneId){
+    this.model=model; this.paneId=paneId;
+    this.ws=null; this.term=null; this.fit=null;
+    this.delay=1000; this.apiMode=false;
+    this.apiBuffer=''; this.geminiHistory=[];
+    this.initialized=false;
+  }
+
+  init(){
+    if(this.initialized) return;
+    this.initialized=true;
+
+    this.term=new Terminal({
+      cursorBlink:true, cursorStyle:'block',
+      fontFamily:"'Courier New','Lucida Console',monospace",
+      fontSize:13, lineHeight:1.25,
+      scrollback:5000, theme:XTERM_THEME,
+      allowTransparency:false, convertEol:false,
+      disableStdin:false,
+    });
+    this.fit=new FitAddon.FitAddon();
+    this.term.loadAddon(this.fit);
+
+    const pane=document.getElementById(this.paneId);
+    this.term.open(pane);
+    this.fit.fit();
+
+    this.term.onData(data=>this.handleInput(data));
+
+    this.connect();
+  }
+
+  connect(){
+    this.apiMode=false;
+    if(this.ws){ try{ this.ws.close(); }catch(e){} }
+    this.ws=new WebSocket(`ws://${BACKEND}/ws/pty/${this.model}`);
+
+    this.ws.onopen=()=>{
+      this.delay=1000;
+      setTermStatus(this.model,true);
+      hud.setState('done');
+      logActivity('SYS',this.model.toUpperCase()+' terminal connected');
+    };
+
+    this.ws.onmessage=e=>{ this.term.write(e.data); };
+
+    this.ws.onclose=()=>{
+      setTermStatus(this.model,false);
+      if(this.model==='gemini'){
+        this.term.write('\r\n\x1b[33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m\r\n');
+        this.term.write('\x1b[33m◈ GEMINI — Direct API Mode (backend offline)\x1b[0m\r\n');
+        this.term.write('\x1b[33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m\r\n\r\n');
+        this.term.write('\x1b[2mType your message and press Enter. Ctrl+C to clear line.\x1b[0m\r\n\r\n');
+        this.term.write('\x1b[33m> \x1b[0m');
+        this.apiMode=true;
+      } else {
+        const sec=(this.delay/1000).toFixed(0);
+        this.term.write(`\r\n\x1b[31m[${this.model.toUpperCase()}] Backend offline — retry in ${sec}s (start start.bat)\x1b[0m\r\n`);
+        setTimeout(()=>this.connect(), this.delay);
+        this.delay=Math.min(this.delay*2, 30000);
+      }
+    };
+
+    this.ws.onerror=()=>{};
+  }
+
+  handleInput(data){
+    if(this.apiMode && this.model==='gemini'){
+      this.handleApiInput(data);
+    } else if(this.ws && this.ws.readyState===WebSocket.OPEN){
+      this.ws.send(data);
+    }
+  }
+
+  handleApiInput(data){
+    const code=data.charCodeAt(0);
+    if(data==='\r'){
+      const q=this.apiBuffer.trim(); this.apiBuffer='';
+      if(q){ this.submitGemini(q); }
+      else { this.term.write('\r\n\x1b[33m> \x1b[0m'); }
+    } else if(code===127){
+      if(this.apiBuffer.length>0){ this.apiBuffer=this.apiBuffer.slice(0,-1); this.term.write('\x08 \x08'); }
+    } else if(code===3){
+      this.apiBuffer=''; this.term.write('^C\r\n\x1b[33m> \x1b[0m');
+    } else if(code>=32){
+      this.apiBuffer+=data; this.term.write(data);
+    }
+  }
+
+  async submitGemini(prompt){
+    this.term.write('\r\n\r\n');
+    this.geminiHistory.push({role:'user',parts:[{text:prompt}]});
+    logActivity('YOU', prompt.substring(0,60));
+    hud.setState('processing');
+    try{
+      const resp=await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        { method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({contents:this.geminiHistory}) }
+      );
+      const d=await resp.json();
+      const text=d.candidates?.[0]?.content?.parts?.[0]?.text||'[No response]';
+      this.geminiHistory.push({role:'model',parts:[{text}]});
+      this.term.write('\x1b[36m[Gemini]\x1b[0m '+text.replace(/\n/g,'\r\n')+'\r\n\r\n\x1b[33m> \x1b[0m');
+      logActivity('VAULT', text.substring(0,80));
+      hud.setState('done');
+    }catch(e){
+      this.term.write('\x1b[31m[ERROR] '+e.message+'\x1b[0m\r\n\x1b[33m> \x1b[0m');
+      logActivity('ERROR', e.message);
+      hud.setState('error');
+    }
+  }
+
+  fitToContainer(){
+    if(this.fit && this.initialized){
+      try{ this.fit.fit(); } catch(e){}
+      if(this.ws && this.ws.readyState===WebSocket.OPEN){
+        const dims={type:'resize',cols:this.term.cols,rows:this.term.rows};
+        this.ws.send(JSON.stringify(dims));
+      }
+    }
+  }
+
+  activate(){
+    document.getElementById(this.paneId).classList.add('active');
+    this.init();
+    // requestAnimationFrame ensures layout is recalculated before fit (hidden tab fix)
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        this.fitToContainer();
+        if(this.term) this.term.focus();
+      });
+    });
+  }
+
+  deactivate(){
+    document.getElementById(this.paneId).classList.remove('active');
+  }
+}
+
+// ── Terminal tab switching ───────────────────────────────────────────────────
+const terminals={
+  claude: new ModelTerminal('claude','pane-claude'),
+  kimi:   new ModelTerminal('kimi',  'pane-kimi'),
+  gemini: new ModelTerminal('gemini','pane-gemini'),
+};
+let activeModel='claude';
+
+function switchTab(model){
+  if(activeModel===model && terminals[model].initialized) return;
+  const prev=activeModel; activeModel=model;
+  terminals[prev].deactivate();
+  document.querySelector(`.term-tab[data-model="${prev}"]`).classList.remove('active');
+  terminals[model].activate();
+  document.querySelector(`.term-tab[data-model="${model}"]`).classList.add('active');
+}
+
+document.querySelectorAll('.term-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>switchTab(btn.dataset.model));
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey && e.key==='1'){ e.preventDefault(); switchTab('claude'); }
+  if(e.ctrlKey && e.key==='2'){ e.preventDefault(); switchTab('kimi'); }
+  if(e.ctrlKey && e.key==='3'){ e.preventDefault(); switchTab('gemini'); }
+});
+
+// ── Startup sequence ─────────────────────────────────────────────────────────
+connectMetrics();
+
+// Init active (claude) terminal immediately
+terminals['claude'].activate();
+
+// Init others lazily — but connect WS in background right away
+setTimeout(()=>{ terminals['kimi'].init(); }, 500);
+setTimeout(()=>{ terminals['gemini'].init(); }, 1000);
+
+const initLog=[
+  {t:200, type:'SYS', msg:'V.A.U.L.T. MARK XII — ONLINE'},
+  {t:500, type:'SYS', msg:'Virtual Assistant for Universal & Local Tasks'},
+  {t:900, type:'SYS', msg:'Connecting terminals to backend port 8765...'},
+  {t:1400,type:'VAULT',msg:'Real terminal sessions: Claude Code / Kimi / Gemini'},
+];
+initLog.forEach(m=>setTimeout(()=>logActivity(m.type,m.msg),m.t));
+
+// ── HUD Toggle ───────────────────────────────────────────────────────────────
+$('hud-toggle').addEventListener('click',()=>{
+  const hudEl=$('hud-area');
+  const collapsed=hudEl.classList.toggle('collapsed');
+  $('hud-toggle').textContent=collapsed?'▶ EXPAND':'▼ COLLAPSE';
+  setTimeout(()=>Object.values(terminals).forEach(t=>t.fitToContainer()),280);
+});
+
+}());
+</script>
+</body>
+</html>
