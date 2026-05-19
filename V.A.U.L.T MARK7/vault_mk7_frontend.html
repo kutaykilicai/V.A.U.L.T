@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V.A.U.L.T. MK7 - Multi-Agent Command Center</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto+Mono:wght@300;400;500;700&display=swap');
+
+        :root {
+            --primary-neon: #00ffff;
+            --secondary-neon: #ff0080;
+            --accent-blue: #0080ff;
+            --bg-dark: #0a0a0f;
+            --bg-panel: rgba(15, 20, 35, 0.95);
+            --bg-glass: rgba(0, 255, 255, 0.05);
+            --text-primary: #ffffff;
+            --text-secondary: #a0b0c4;
+            --success: #00ff88;
+            --error: #ff4466;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 0, 128, 0.1) 0%, transparent 50%);
+        }
+
+        .hud-container {
+            width: 100vw;
+            height: 100vh;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            grid-template-rows: 100px 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #header {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 40px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo-text {
+            font-family: 'Orbitron', monospace;
+            font-size: 3.5em;
+            font-weight: 900;
+            letter-spacing: 12px;
+            color: var(--text-primary);
+            text-shadow: 0 0 10px var(--primary-neon);
+        }
+
+        .version-badge {
+            background: linear-gradient(135deg, var(--secondary-neon), var(--accent-blue));
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: 700;
+        }
+
+        .n8n-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 0.9em;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        #agents-panel {
+            padding: 25px;
+        }
+
+        .agents-header {
+            color: var(--primary-neon);
+            font-family: 'Orbitron', monospace;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+            border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 15px;
+        }
+
+        .agent-card {
+            background: var(--bg-glass);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .agent-card:hover {
+            border-color: var(--primary-neon);
+            background: rgba(0, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .agent-card.active {
+            border-color: var(--secondary-neon);
+            background: linear-gradient(135deg, rgba(255, 0, 128, 0.1), rgba(0, 255, 255, 0.05));
+        }
+
+        .agent-name {
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .agent-description {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .agent-status {
+            font-size: 0.8em;
+            padding: 4px 10px;
+            border-radius: 15px;
+            display: inline-block;
+        }
+
+        .agent-status.ready {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--success);
+        }
+
+        .agent-status.working {
+            background: rgba(255, 128, 0, 0.2);
+            color: #ff8000;
+        }
+
+        #chat-panel {
+            padding: 25px;
+        }
+
+        .panel-header {
+            color: var(--primary-neon);
+            font-family: 'Orbitron', monospace;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+        }
+
+        #chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: var(--bg-glass);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            max-height: calc(100vh - 350px);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            animation: messageAppear 0.3s ease-out;
+        }
+
+        @keyframes messageAppear {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, rgba(0, 128, 255, 0.2), rgba(0, 255, 255, 0.1));
+            border-left: 4px solid var(--accent-blue);
+            margin-left: 50px;
+        }
+
+        .message.vault {
+            background: linear-gradient(135deg, rgba(255, 0, 128, 0.2), rgba(0, 255, 255, 0.1));
+            border-left: 4px solid var(--secondary-neon);
+            margin-right: 50px;
+        }
+
+        .message-header {
+            font-weight: 700;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            color: var(--primary-neon);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .agent-badge {
+            font-size: 0.7em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(0, 255, 255, 0.2);
+        }
+
+        .message-content {
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+
+        .message-time {
+            font-size: 0.7em;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            text-align: right;
+        }
+
+        #chat-form {
+            display: flex;
+            gap: 15px;
+            align-items: stretch;
+        }
+
+        #chat-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            color: var(--text-primary);
+            padding: 15px 20px;
+            border-radius: 25px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        #chat-input:focus {
+            border-color: var(--primary-neon);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        #send-button {
+            background: linear-gradient(135deg, var(--secondary-neon), var(--accent-blue));
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #send-button:hover:not(:disabled) {
+            transform: translateY(-3px);
+        }
+
+        #send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #monitoring-panel {
+            padding: 25px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: var(--bg-glass);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--primary-neon);
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+        }
+
+        .workflow-status {
+            background: var(--bg-glass);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .workflow-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .workflow-item:last-child {
+            border-bottom: none;
+        }
+
+        .workflow-name {
+            font-size: 0.9em;
+            color: var(--text-primary);
+        }
+
+        .workflow-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .thinking {
+            font-style: italic;
+            color: var(--primary-neon);
+        }
+
+        .execution-log {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.8em;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="hud-container">
+        <header id="header" class="panel">
+            <div class="logo-container">
+                <div class="logo-text">V.A.U.L.T</div>
+                <div class="version-badge">MK7</div>
+            </div>
+            <div class="n8n-status">
+                <div class="status-indicator"></div>
+                <span>N8N Multi-Agent System</span>
+                <span id="n8n-status">Connected</span>
+            </div>
+        </header>
+        
+        <div id="agents-panel" class="panel">
+            <h3 class="agents-header">Active Agents</h3>
+            
+            <div class="agent-card" data-agent="browser">
+                <div class="agent-name">🌐 Browser Agent</div>
+                <div class="agent-description">Web automation & scraping</div>
+                <div class="agent-status ready">Ready</div>
+            </div>
+            
+            <div class="agent-card" data-agent="system">
+                <div class="agent-name">⚙️ System Agent</div>
+                <div class="agent-description">OS commands & processes</div>
+                <div class="agent-status ready">Ready</div>
+            </div>
+            
+            <div class="agent-card" data-agent="ai">
+                <div class="agent-name">🤖 AI Agent</div>
+                <div class="agent-description">Gemini AI processing</div>
+                <div class="agent-status ready">Ready</div>
+            </div>
+            
+            <div class="agent-card" data-agent="file">
+                <div class="agent-name">📁 File Agent</div>
+                <div class="agent-description">File operations & management</div>
+                <div class="agent-status ready">Ready</div>
+            </div>
+        </div>
+        
+        <div id="chat-panel" class="panel">
+            <h2 class="panel-header">Multi-Agent Command Interface</h2>
+            <div id="chat-history"></div>
+            <form id="chat-form">
+                <input type="text" id="chat-input" placeholder="Enter multi-agent command, Sir..." autocomplete="off">
+                <button type="submit" id="send-button">Execute</button>
+            </form>
+        </div>
+        
+        <div id="monitoring-panel" class="panel">
+            <h3 class="agents-header">System Monitoring</h3>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="total-executions">0</div>
+                    <div class="metric-label">Total Executions</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value" id="active-agents">4</div>
+                    <div class="metric-label">Active Agents</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value" id="success-rate">100%</div>
+                    <div class="metric-label">Success Rate</div>
+                </div>
+            </div>
+            
+            <div class="workflow-status">
+                <h4 style="color: var(--primary-neon); margin-bottom: 10px; font-size: 0.9em;">N8N Workflows</h4>
+                
+                <div class="workflow-item">
+                    <span class="workflow-name">VAULT MK7 Main</span>
+                    <div class="workflow-indicator"></div>
+                </div>
+                
+                <div class="workflow-item">
+                    <span class="workflow-name">Agent Router</span>
+                    <div class="workflow-indicator"></div>
+                </div>
+                
+                <div class="workflow-item">
+                    <span class="workflow-name">Response Coordinator</span>
+                    <div class="workflow-indicator"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+    // N8N Production Webhook URL
+    const N8N_WEBHOOK_URL = "http://localhost:5678/webhook/vault-command";
+    
+    // Geri kalan kod aynı kalacak...
+            
+            const chatHistory = document.getElementById('chat-history');
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
+            const sendButton = document.getElementById('send-button');
+            const agentCards = document.querySelectorAll('.agent-card');
+            const totalExecutions = document.getElementById('total-executions');
+            const n8nStatus = document.getElementById('n8n-status');
+            
+            let executionCount = 0;
+            let currentSessionId = generateSessionId();
+
+            function generateSessionId() {
+                return 'vault-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            }
+
+            function formatTime(timestamp) {
+                return new Date(timestamp).toLocaleTimeString('tr-TR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            }
+
+            function appendMessage(sender, text, agents = [], timestamp = null) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message', sender.toLowerCase());
+                
+                const headerDiv = document.createElement('div');
+                headerDiv.classList.add('message-header');
+                
+                if (sender === 'user') {
+                    headerDiv.innerHTML = '<span>USER COMMAND</span>';
+                } else {
+                    const agentBadges = agents.map(agent => 
+                        `<span class="agent-badge">${agent}</span>`
+                    ).join(' ');
+                    headerDiv.innerHTML = `<span>[VAULT MK7]</span><div>${agentBadges}</div>`;
+                }
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('message-content');
+                
+                if (typeof text === 'object') {
+                    // Multi-agent response
+                    let formattedResponse = `<strong>Execution Summary:</strong><br>`;
+                    formattedResponse += `Agents Executed: ${text.agents_executed}<br><br>`;
+                    
+                    text.responses.forEach(response => {
+                        formattedResponse += `<strong>${response.agent}:</strong><br>`;
+                        formattedResponse += `${response.result}<br><br>`;
+                    });
+                    
+                    contentDiv.innerHTML = formattedResponse;
+                } else {
+                    contentDiv.textContent = text;
+                }
+                
+                const timeDiv = document.createElement('div');
+                timeDiv.classList.add('message-time');
+                timeDiv.textContent = timestamp ? formatTime(timestamp) : formatTime(new Date());
+                
+                messageDiv.appendChild(headerDiv);
+                messageDiv.appendChild(contentDiv);
+                messageDiv.appendChild(timeDiv);
+                
+                chatHistory.appendChild(messageDiv);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+                
+                return messageDiv;
+            }
+
+            function showThinking() {
+                const thinkingDiv = document.createElement('div');
+                thinkingDiv.classList.add('message', 'vault');
+                
+                const headerDiv = document.createElement('div');
+                headerDiv.classList.add('message-header');
+                headerDiv.innerHTML = '<span>[VAULT MK7]</span>';
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('message-content', 'thinking');
+                contentDiv.textContent = 'Multi-agent system processing...';
+                
+                thinkingDiv.appendChild(headerDiv);
+                thinkingDiv.appendChild(contentDiv);
+                
+                chatHistory.appendChild(thinkingDiv);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+                
+                return thinkingDiv;
+            }
+
+            function updateAgentStatus(agentType, status) {
+                const agentCard = document.querySelector(`[data-agent="${agentType}"]`);
+                if (agentCard) {
+                    const statusElement = agentCard.querySelector('.agent-status');
+                    statusElement.textContent = status;
+                    statusElement.className = `agent-status ${status.toLowerCase()}`;
+                    
+                    if (status === 'Working') {
+                        agentCard.classList.add('active');
+                    } else {
+                        agentCard.classList.remove('active');
+                    }
+                }
+            }
+
+            async function executeCommand(command) {
+                if (!command || sendButton.disabled) return;
+                
+                sendButton.disabled = true;
+                appendMessage('user', command);
+                const thinkingMessage = showThinking();
+
+                try {
+                    // N8N webhook'una istek gönder
+                    const response = await fetch(N8N_WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            command: command,
+                            session_id: currentSessionId,
+                            timestamp: new Date().toISOString()
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`N8N Webhook Error: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    thinkingMessage.remove();
+                    
+                    // Extract agent names from responses
+                    const executedAgents = data.responses ? 
+                        data.responses.map(r => r.agent) : [];
+                    
+                    appendMessage('vault', data, executedAgents);
+                    
+                    // Update metrics
+                    executionCount++;
+                    totalExecutions.textContent = executionCount;
+                    
+                    // Reset agent statuses
+                    setTimeout(() => {
+                        agentCards.forEach(card => {
+                            const statusElement = card.querySelector('.agent-status');
+                            statusElement.textContent = 'Ready';
+                            statusElement.className = 'agent-status ready';
+                            card.classList.remove('active');
+                        });
+                    }, 2000);
+
+                } catch (error) {
+                    thinkingMessage.remove();
+                    appendMessage('vault', `N8N Connection Error: ${error.message}`);
+                    n8nStatus.textContent = 'Connection Error';
+                    n8nStatus.style.color = 'var(--error)';
+                } finally {
+                    sendButton.disabled = false;
+                    chatInput.value = '';
+                    chatInput.focus();
+                }
+            }
+
+            // Event listeners
+            chatForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const command = chatInput.value.trim();
+                if (command) {
+                    executeCommand(command);
+                }
+            });
+
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    chatForm.dispatchEvent(new Event('submit'));
+                }
+            });
+
+            // Agent card interactions
+            agentCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const agentType = card.dataset.agent;
+                    const agentCommands = {
+                        browser: 'Google\'da "artificial intelligence" araması yap',
+                        system: 'Sistem bilgilerini listele',
+                        ai: 'Yapay zeka hakkında kısa bir açıklama yaz',
+                        file: 'Mevcut dizindeki dosyaları listele'
+                    };
+                    
+                    chatInput.value = agentCommands[agentType];
+                    chatInput.focus();
+                });
+            });
+
+            // N8N connection test
+            async function testN8NConnection() {
+                try {
+                    // Simple ping to N8N
+                    const response = await fetch('http://localhost:5678');
+                    if (response.ok || response.status === 404) {
+                        n8nStatus.textContent = 'Connected';
+                        n8nStatus.style.color = 'var(--success)';
+                    }
+                } catch (error) {
+                    n8nStatus.textContent = 'Disconnected';
+                    n8nStatus.style.color = 'var(--error)';
+                }
+            }
+
+            // Initialize
+            setTimeout(() => {
+                appendMessage('vault', 'VAULT MK7 Multi-Agent System initialized. N8N workflow integration active. All agents standing by, Sir.');
+                testN8NConnection();
+            }, 1000);
+
+            // Periodic N8N connection check
+            setInterval(testN8NConnection, 10000);
+            
+            chatInput.focus();
+        });
+    </script>
+</body>
+</html>

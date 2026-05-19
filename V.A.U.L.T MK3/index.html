@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V.A.U.L.T. MK3 Interface</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="hud-container">
+        <header id="header" class="widget-panel"><h1 class="animated-glitch">V A U L T</h1></header>
+        <div id="left-sidebar">
+            <div id="system-status" class="widget-panel">
+                 <h2 class="widget-title">SYSTEM STATUS</h2>
+                 <p>Vault Protocol: <span class="status-ok">ACTIVE</span></p>
+                 <p>Backend Link: <span id="api-status" class="status-error">INACTIVE</span></p>
+                 <p>Data Core Sync: <span class="status-ok">STABLE</span></p>
+                 <p>System Time: <span id="system-time"></span></p>
+            </div>
+            <div id="chat-list-panel" class="widget-panel">
+                <div class="chat-list-header"><h2 class="widget-title">SOHBET GEÇMİŞİ</h2><button id="new-chat-button">+ Yeni Sohbet</button></div>
+                <ul id="chat-list"></ul>
+            </div>
+        </div>
+        <div id="chat-panel" class="widget-panel">
+            <h2 class="widget-title">COMMUNICATION INTERFACE</h2>
+            <div id="chat-history"></div>
+            <div id="file-preview-container" style="display: none;">
+                <img id="image-preview" src="" alt="Görsel Önizleme"/>
+                <button id="remove-image-button" title="Görseli Kaldır">&times;</button>
+            </div>
+            <form id="chat-form">
+                <label for="file-upload" class="file-upload-label" title="Dosya Yükle">📎</label>
+                <input type="file" id="file-upload" accept="image/*" style="display: none;">
+                <input type="text" id="chat-input" placeholder="İstem girin..." autocomplete="off">
+                <button type="submit" id="send-button">Gönder</button>
+            </form>
+        </div>
+        <div id="autocad-assistant" class="widget-panel">
+            <h2 class="widget-title">AUTOCAD ASİSTANI</h2>
+            <div class="action-button-group">
+                <button data-prompt="Şu AutoCAD komutunu açıkla: ">Komut Açıklaması İste</button>
+                <button data-prompt="AutoCAD'de tekrar eden bir işi otomatikleştirmek için basit bir AutoLISP kodu yaz. Görevim: ">Basit LISP Kodu Yazdır</button>
+                <button data-prompt="AutoCAD'de aşağıdaki iş akışı için adım adım bir kılavuz oluştur: ">Adım Adım Kılavuz İste</button>
+            </div>
+        </div>
+        <div id="quick-actions" class="widget-panel">
+            <h2 class="widget-title">QUICK ACTIONS</h2>
+            <button id="export-chat-button">Sohbeti Dışa Aktar (.txt)</button>
+            <button id="clear-chat-button">Sohbeti Temizle</button>
+            <button id="change-api-key-button">API Anahtarını Değiştir</button>
+        </div>
+    </div>
+    <div id="api-key-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h2 class="widget-title">API Anahtarı Gerekli</h2>
+            <p>Devam etmek için lütfen Google AI Studio API anahtarınızı girin.</p>
+            <input type="password" id="api-key-input" placeholder="API Anahtarınızı buraya yapıştırın...">
+            <button id="save-api-key-button">Kaydet ve Başlat</button>
+        </div>
+    </div>
+    <script src="script.js" defer></script>
+</body>
+</html>
