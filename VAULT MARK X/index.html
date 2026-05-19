@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V.A.U.L.T. MARK X</title>
+<style>
+:root {
+--bg: #00060a; --panel: #010d14; --panel2: #010f18;
+--border: #0d3347; --border-b: #1a5c7a; --border-a: #0f4060;
+--primary: #00d4ff; --primary-dim: #007a99; --primary-ghost: #001f2e;
+--accent: #ff6b00; --accent2: #ffcc00;
+--green: #00ff88; --green-dark: #00aa55;
+--red: #ff3355; --muted-c: #ff3366;
+--text: #8ffcff; --text-dim: #3a8a9a; --text-med: #5ab8cc;
+--white: #d8f8ff; --dark: #000d14; --bar-bg: #011520;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Courier New',monospace;overflow:hidden;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bar-bg);}
+::-webkit-scrollbar-thumb{background:var(--border-b);border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:var(--primary-dim);}
+.grid-bg{background-image:radial-gradient(circle,var(--primary-ghost) 1px,transparent 1px);background-size:48px 48px;}
+#app{display:flex;flex-direction:column;height:100vh;}
+#header{height:54px;min-height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--border);background:var(--panel);position:relative;z-index:10;}
+.header-left{display:flex;align-items:center;gap:10px;}
+.header-logo{font-size:16px;font-weight:bold;color:var(--primary);letter-spacing:2px;text-shadow:0 0 12px var(--primary);}
+.header-logo span{color:var(--accent);}
+#conn-status{font-size:13px;letter-spacing:1px;}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;box-shadow:0 0 6px currentColor;}
+.status-dot.connected{color:var(--green);background:var(--green);}
+.status-dot.disconnected{color:var(--red);background:var(--red);}
+#clock{font-size:14px;color:var(--primary-dim);letter-spacing:2px;font-variant-numeric:tabular-nums;}
+#main{flex:1;display:flex;min-height:0;overflow:hidden;}
+#footer{height:22px;min-height:22px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-top:1px solid var(--border);background:var(--panel);font-size:10px;color:var(--text-dim);}
+.footer-shortcuts{display:flex;gap:14px;}
+.footer-shortcuts kbd{background:var(--primary-ghost);border:1px solid var(--border-b);border-radius:2px;padding:0 4px;color:var(--text-med);font-family:'Courier New',monospace;font-size:9px;}
+.footer-ver{color:var(--primary-dim);letter-spacing:1px;}
+#left-panel{width:155px;min-width:155px;display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--panel);overflow:hidden;}
+#center-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--panel2);}
+#right-panel{width:340px;min-width:340px;display:flex;flex-direction:column;border-left:1px solid var(--border);background:var(--panel);overflow:hidden;}
+.panel-header{display:flex;align-items:center;padding:6px 10px;border-bottom:1px solid var(--border);background:var(--dark);font-size:10px;font-weight:bold;letter-spacing:2px;color:var(--primary-dim);white-space:nowrap;}
+.panel-header .ph-icon{color:var(--primary);margin-right:5px;}
+#sys-monitor{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+.sys-metrics{padding:8px 8px 4px;display:flex;flex-direction:column;gap:5px;}
+.metric-item{display:flex;flex-direction:column;gap:2px;}
+.metric-label-row{display:flex;justify-content:space-between;align-items:center;}
+.metric-label{font-size:9px;color:var(--text-dim);letter-spacing:1px;}
+.metric-val{font-size:9px;color:var(--primary);font-variant-numeric:tabular-nums;}
+.metric-bar-track{height:4px;background:var(--bar-bg);border-radius:2px;overflow:hidden;border:1px solid var(--border);}
+.metric-bar-fill{height:100%;width:0%;border-radius:2px;transition:width 0.4s ease,background-color 0.4s ease;}
+.sys-info{padding:6px 8px;border-top:1px solid var(--border);font-size:9px;color:var(--text-dim);}
+.sys-info-row{display:flex;justify-content:space-between;margin-bottom:3px;}
+.sys-info-val{color:var(--text-med);}
+.sys-badges{padding:6px 8px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px;margin-top:auto;}
+.sys-badge{font-size:8px;letter-spacing:1px;padding:2px 5px;border:1px solid var(--border);border-radius:2px;color:var(--text-dim);background:var(--dark);}
+.sys-badge.active{border-color:var(--primary-dim);color:var(--primary);}
+.sys-badge.ready{border-color:var(--green-dark);color:var(--green);}
+#hud-area{display:flex;align-items:center;justify-content:center;height:260px;min-height:260px;border-bottom:1px solid var(--border);background:var(--dark);position:relative;overflow:hidden;}
+#hud-area.grid-bg{}
+#hud-canvas{display:block;}
+.vault-hub{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
+.hub-header{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-bottom:1px solid var(--border);background:var(--dark);}
+.hub-title{font-size:10px;font-weight:bold;letter-spacing:2px;color:var(--primary-dim);}
+.model-selector{display:flex;gap:4px;}
+.model-btn{font-family:'Courier New',monospace;font-size:9px;font-weight:bold;letter-spacing:1px;padding:3px 8px;border:1px solid var(--border-a);background:transparent;color:var(--text-dim);cursor:pointer;border-radius:2px;transition:all 0.15s ease;}
+.model-btn:hover{border-color:var(--primary-dim);color:var(--text-med);}
+.model-btn.active{background:var(--primary-ghost);border-color:var(--primary);color:var(--primary);}
+#hub-terminal{flex:1;min-height:180px;overflow-y:auto;padding:8px 10px;background:var(--dark);font-size:11px;line-height:1.6;}
+.term-line{display:flex;gap:6px;margin-bottom:1px;word-break:break-word;}
+.term-line .tl-prefix{color:var(--text-dim);flex-shrink:0;font-size:10px;opacity:0.7;}
+.term-line.type-user .tl-text{color:var(--primary);}
+.term-line.type-output .tl-text{color:var(--text);}
+.term-line.type-error .tl-text{color:var(--red);}
+.term-line.type-system .tl-text{color:var(--text-dim);}
+.term-line.type-chunk .tl-text{color:var(--text-med);}
+.hub-input-bar{display:flex;align-items:center;gap:4px;padding:6px 8px;border-top:1px solid var(--border);background:var(--panel2);}
+#prompt-label{font-size:11px;color:var(--primary);white-space:nowrap;flex-shrink:0;letter-spacing:1px;}
+#hub-input{flex:1;background:var(--dark);border:1px solid var(--border-a);color:var(--white);font-family:'Courier New',monospace;font-size:11px;padding:4px 8px;outline:none;border-radius:2px;min-width:0;}
+#hub-input:focus{border-color:var(--primary-dim);box-shadow:0 0 6px rgba(0,212,255,0.15);}
+#hub-input::placeholder{color:var(--text-dim);font-size:10px;}
+#btn-exec{font-family:'Courier New',monospace;font-size:10px;font-weight:bold;letter-spacing:1px;padding:4px 10px;background:var(--primary);color:var(--dark);border:none;cursor:pointer;border-radius:2px;transition:opacity 0.15s;flex-shrink:0;}
+#btn-exec:hover{opacity:0.8;}
+#btn-clear{font-family:'Courier New',monospace;font-size:10px;font-weight:bold;letter-spacing:1px;padding:4px 8px;background:transparent;color:var(--text-dim);border:1px solid var(--border);cursor:pointer;border-radius:2px;transition:all 0.15s;flex-shrink:0;}
+#btn-clear:hover{border-color:var(--border-b);color:var(--text-med);}
+#activity-log-panel{flex:0 0 60%;display:flex;flex-direction:column;border-bottom:1px solid var(--border);overflow:hidden;}
+#activity-log{flex:1;overflow-y:auto;padding:6px 8px;font-size:10px;line-height:1.65;background:var(--panel);}
+.log-line{display:flex;gap:5px;margin-bottom:1px;word-break:break-word;}
+.log-time{color:var(--text-dim);flex-shrink:0;font-size:9px;opacity:0.6;font-variant-numeric:tabular-nums;}
+.log-type{flex-shrink:0;font-size:9px;font-weight:bold;min-width:40px;}
+.log-type.you{color:var(--primary);}
+.log-type.vault{color:var(--text-med);}
+.log-type.file{color:var(--accent2);}
+.log-type.error{color:var(--red);}
+.log-type.sys{color:var(--text-dim);}
+.log-msg{color:var(--text);}
+.log-msg.you{color:var(--primary);}
+.log-msg.vault{color:var(--text);}
+.log-msg.file{color:var(--accent2);}
+.log-msg.error{color:var(--red);}
+.log-msg.sys{color:var(--text-dim);}
+#file-upload-panel{flex:0 0 40%;display:flex;flex-direction:column;overflow:hidden;}
+.file-upload-inner{flex:1;display:flex;flex-direction:column;padding:8px;gap:6px;overflow-y:auto;}
+#file-drop{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1.5px dashed var(--border-b);border-radius:4px;padding:14px 8px;cursor:pointer;transition:background 0.15s,border-color 0.15s;gap:4px;animation:dashMove 2s linear infinite;background:var(--dark);}
+#file-drop:hover,#file-drop.dragover{background:var(--primary-ghost);border-color:var(--primary);}
+@keyframes dashMove{from{border-image:none;}to{border-image:none;}}
+#file-drop .drop-icon{font-size:20px;color:var(--primary-dim);}
+#file-drop .drop-label{font-size:9px;color:var(--text-dim);letter-spacing:1px;text-align:center;}
+#file-drop .drop-sub{font-size:8px;color:var(--border-b);letter-spacing:1px;}
+#file-list{display:flex;flex-direction:column;gap:3px;overflow-y:auto;}
+.file-item{display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--primary-ghost);border:1px solid var(--border);border-radius:2px;font-size:9px;}
+.file-item-icon{color:var(--accent2);flex-shrink:0;}
+.file-item-name{flex:1;color:var(--text-med);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.file-item-size{color:var(--text-dim);flex-shrink:0;font-variant-numeric:tabular-nums;}
+#file-input{display:none;}
+</style>
+</head>
+<body>
+<div id="app">
+<header id="header">
+<div class="header-left">
+<span class="header-logo">◈ V.A.U.L.T. <span>MARK X</span></span>
+<div id="conn-status"><span class="status-dot disconnected" id="conn-dot"></span><span id="conn-label">OFFLINE</span></div>
+</div>
+<div id="clock">00:00:00</div>
+</header>
+<div id="main">
+<div id="left-panel" class="grid-bg">
+<div class="panel-header"><span class="ph-icon">◈</span> SYS MONITOR</div>
+<div id="sys-monitor">
+<div class="sys-metrics">
+<div class="metric-item">
+<div class="metric-label-row"><span class="metric-label">CPU</span><span class="metric-val" id="val-cpu">0%</span></div>
+<div class="metric-bar-track"><div class="metric-bar-fill" id="bar-cpu"></div></div>
+</div>
+<div class="metric-item">
+<div class="metric-label-row"><span class="metric-label">MEM</span><span class="metric-val" id="val-mem">0%</span></div>
+<div class="metric-bar-track"><div class="metric-bar-fill" id="bar-mem"></div></div>
+</div>
+<div class="metric-item">
+<div class="metric-label-row"><span class="metric-label">NET</span><span class="metric-val" id="val-net">0%</span></div>
+<div class="metric-bar-track"><div class="metric-bar-fill" id="bar-net"></div></div>
+</div>
+<div class="metric-item">
+<div class="metric-label-row"><span class="metric-label">GPU</span><span class="metric-val" id="val-gpu">0%</span></div>
+<div class="metric-bar-track"><div class="metric-bar-fill" id="bar-gpu"></div></div>
+</div>
+<div class="metric-item">
+<div class="metric-label-row"><span class="metric-label">TMP</span><span class="metric-val" id="val-tmp">0°C</span></div>
+<div class="metric-bar-track"><div class="metric-bar-fill" id="bar-tmp"></div></div>
+</div>
+</div>
+<div class="sys-info">
+<div class="sys-info-row"><span>UPTIME</span><span class="sys-info-val" id="sys-uptime">--:--:--</span></div>
+<div class="sys-info-row"><span>PROCS</span><span class="sys-info-val" id="sys-procs">--</span></div>
+</div>
+<div class="sys-badges">
+<div class="sys-badge active">◈ MEMORY LINKED</div>
+<div class="sys-badge ready">▷ CLAUDE READY</div>
+<div class="sys-badge ready">▷ KIMI READY</div>
+<div class="sys-badge ready">▷ GEMINI READY</div>
+</div>
+</div>
+</div>
+<div id="center-panel">
+<div id="hud-area" class="grid-bg">
+<canvas id="hud-canvas"></canvas>
+</div>
+<div class="vault-hub">
+<div class="hub-header">
+<span class="hub-title">◈ V.A.U.L.T. HUB</span>
+<div class="model-selector">
+<button class="model-btn active" data-model="claude">CLAUDE CODE</button>
+<button class="model-btn" data-model="kimi">KIMI</button>
+<button class="model-btn" data-model="gemini">GEMINI</button>
+</div>
+</div>
+<div id="hub-terminal"></div>
+<div class="hub-input-bar">
+<span id="prompt-label" class="prompt-label">[CLAUDE CODE]›</span>
+<input id="hub-input" type="text" placeholder="Enter command or skill (/vault-save, /goal, ...)">
+<button id="btn-exec">EXEC</button>
+<button id="btn-clear">CLR</button>
+</div>
+</div>
+</div>
+<div id="right-panel" class="grid-bg">
+<div id="activity-log-panel">
+<div class="panel-header"><span class="ph-icon">◈</span> ACTIVITY LOG</div>
+<div id="activity-log"></div>
+</div>
+<div id="file-upload-panel">
+<div class="panel-header"><span class="ph-icon">⬇</span> FILE UPLOAD</div>
+<div class="file-upload-inner">
+<div id="file-drop">
+<span class="drop-icon">⬇</span>
+<span class="drop-label">DROP FILES OR CLICK</span>
+<span class="drop-sub">ANY FORMAT SUPPORTED</span>
+</div>
+<div id="file-list"></div>
+</div>
+</div>
+</div>
+</div>
+<footer id="footer">
+<div class="footer-shortcuts">
+<span><kbd>Ctrl+Enter</kbd> EXEC</span>
+<span><kbd>Ctrl+L</kbd> CLEAR</span>
+<span><kbd>Ctrl+1</kbd> CLAUDE</span>
+<span><kbd>Ctrl+2</kbd> KIMI</span>
+<span><kbd>Ctrl+3</kbd> GEMINI</span>
+</div>
+<span class="footer-ver">V.A.U.L.T. MARK X v10.0.0</span>
+</footer>
+</div>
+<input type="file" id="file-input" multiple>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const hub = $('hub-terminal');
+const actLog = $('activity-log');
+const hubInput = $('hub-input');
+const promptLabel = $('prompt-label');
+const connDot = $('conn-dot');
+const connLabel = $('conn-label');
+const clock = $('clock');
+const fileList = $('file-list');
+const fileDrop = $('file-drop');
+const fileInput = $('file-input');
+
+let currentModel = 'claude';
+let metricsWs = null;
+let terminalWs = null;
+let metricsConnected = false;
+let terminalConnected = false;
+let logQueue = [];
+let logBusy = false;
+
+const modelLabels = {claude:'[CLAUDE CODE]›', kimi:'[KIMI]›', gemini:'[GEMINI]›'};
+
+function updateConnectionStatus(){
+const ok = metricsConnected && terminalConnected;
+connDot.className = 'status-dot ' + (ok ? 'connected' : 'disconnected');
+connLabel.textContent = ok ? 'ONLINE' : (metricsConnected || terminalConnected ? 'PARTIAL' : 'OFFLINE');
+}
+
+function clockTick(){
+const d = new Date();
+const h = String(d.getHours()).padStart(2,'0');
+const m = String(d.getMinutes()).padStart(2,'0');
+const s = String(d.getSeconds()).padStart(2,'0');
+clock.textContent = h+':'+m+':'+s;
+}
+setInterval(clockTick,1000);
+clockTick();
+
+function barColor(pct){
+if(pct < 65) return 'var(--green)';
+if(pct < 85) return 'var(--accent)';
+return 'var(--red)';
+}
+
+function updateMetric(id, value, max){
+const pct = Math.min(100, Math.max(0, (value/max)*100));
+const bar = $('bar-'+id);
+const val = $('val-'+id);
+if(!bar || !val) return;
+bar.style.width = pct+'%';
+bar.style.background = barColor(pct);
+if(id === 'tmp') val.textContent = Math.round(value)+'°C';
+else if(id === 'net') val.textContent = value >= 1000 ? (value/1024).toFixed(1)+'MB/s' : Math.round(value)+'KB/s';
+else val.textContent = Math.round(pct)+'%';
+}
+
+function connectMetricsWs(){
+try{
+metricsWs = new WebSocket('ws://localhost:8765/ws/metrics');
+metricsWs.onopen = ()=>{
+metricsConnected = true;
+updateConnectionStatus();
+};
+metricsWs.onmessage = e=>{
+try{
+const d = JSON.parse(e.data);
+if(d.cpu !== undefined) updateMetric('cpu', d.cpu, 100);
+if(d.mem !== undefined) updateMetric('mem', d.mem, 100);
+if(d.net_kb !== undefined) updateMetric('net', d.net_kb, 2048);
+if(d.gpu !== undefined) updateMetric('gpu', d.gpu, 100);
+if(d.tmp !== undefined) updateMetric('tmp', d.tmp, 120);
+if(d.uptime !== undefined) $('sys-uptime').textContent = d.uptime;
+if(d.procs !== undefined) $('sys-procs').textContent = d.procs;
+}catch(err){}
+};
+metricsWs.onclose = ()=>{
+metricsConnected = false;
+updateConnectionStatus();
+setTimeout(connectMetricsWs, 2000);
+};
+metricsWs.onerror = ()=>{};
+}catch(err){}
+}
+
+function connectTerminalWs(){
+try{
+terminalWs = new WebSocket('ws://localhost:8765/ws/terminal');
+terminalWs.onopen = ()=>{
+terminalConnected = true;
+updateConnectionStatus();
+addTermLine('system','WS CONNECTED: Terminal hub active');
+};
+terminalWs.onmessage = e=>{
+try{
+const d = JSON.parse(e.data);
+if(d.type === 'start'){
+addTermLine('system', '▷ Processing...');
+hud.setState('processing');
+}else if(d.type === 'chunk'){
+addTermLine('chunk', d.data||'');
+}else if(d.type === 'done'){
+const exitMsg = d.code === 0 ? '▶ Done (exit 0)' : '⚠ Done (exit '+d.code+')';
+addTermLine('output', exitMsg);
+hud.setState('done');
+logActivity('VAULT', 'Task completed (exit '+d.code+')');
+}else if(d.type === 'error'){
+addTermLine('error', '⊘ ' + (d.message||'Unknown error'));
+hud.setState('error');
+logActivity('ERROR', d.message||'Error occurred');
+}
+}catch(err){}
+};
+terminalWs.onclose = ()=>{
+terminalConnected = false;
+updateConnectionStatus();
+addTermLine('error','WS DISCONNECTED — reconnecting...');
+setTimeout(connectTerminalWs, 2000);
+};
+terminalWs.onerror = ()=>{};
+}catch(err){}
+}
+
+function addTermLine(type, text){
+const line = document.createElement('div');
+line.className = 'term-line type-'+type;
+const pre = document.createElement('span');
+pre.className = 'tl-prefix';
+const d = new Date();
+pre.textContent = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+const txt = document.createElement('span');
+txt.className = 'tl-text';
+txt.textContent = text;
+line.appendChild(pre);
+line.appendChild(txt);
+hub.appendChild(line);
+hub.scrollTop = hub.scrollHeight;
+}
+
+function sendCommand(model, cmd){
+if(!cmd.trim()) return;
+addTermLine('user', '['+model.toUpperCase()+'] › '+cmd);
+logActivity('YOU', cmd.substring(0,60));
+hud.setState('processing');
+if(terminalWs && terminalWs.readyState === WebSocket.OPEN){
+terminalWs.send(JSON.stringify({model:model,command:cmd}));
+}else{
+addTermLine('error','⊘ Not connected to backend. Start vault_backend.py on port 8765.');
+hud.setState('error');
+logActivity('ERROR','Backend not connected');
+}
+}
+
+document.querySelectorAll('.model-btn').forEach(btn=>{
+btn.addEventListener('click',()=>{
+document.querySelectorAll('.model-btn').forEach(b=>b.classList.remove('active'));
+btn.classList.add('active');
+currentModel = btn.dataset.model;
+promptLabel.textContent = modelLabels[currentModel]||'[?]›';
+logActivity('SYS','Model switched: '+currentModel.toUpperCase());
+});
+});
+
+$('btn-exec').addEventListener('click',()=>{
+const v = hubInput.value;
+if(v.trim()){sendCommand(currentModel,v);hubInput.value='';}
+});
+
+$('btn-clear').addEventListener('click',()=>{
+hub.innerHTML='';
+logActivity('SYS','Terminal cleared');
+});
+
+hubInput.addEventListener('keydown',e=>{
+if(e.key==='Enter'){
+const v = hubInput.value;
+if(v.trim()){sendCommand(currentModel,v);hubInput.value='';}
+}
+});
+
+document.addEventListener('keydown',e=>{
+if(e.ctrlKey && e.key==='Enter'){
+e.preventDefault();
+const v = hubInput.value;
+if(v.trim()){sendCommand(currentModel,v);hubInput.value='';}
+}
+if(e.ctrlKey && e.key.toLowerCase()==='l'){
+e.preventDefault();
+hub.innerHTML='';
+}
+if(e.ctrlKey && e.key==='1'){e.preventDefault();document.querySelector('[data-model="claude"]').click();}
+if(e.ctrlKey && e.key==='2'){e.preventDefault();document.querySelector('[data-model="kimi"]').click();}
+if(e.ctrlKey && e.key==='3'){e.preventDefault();document.querySelector('[data-model="gemini"]').click();}
+});
+
+function processLogQueue(){
+if(logBusy || logQueue.length===0) return;
+logBusy = true;
+const item = logQueue.shift();
+const {type, message} = item;
+const line = document.createElement('div');
+line.className = 'log-line';
+const d = new Date();
+const ts = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+const timeEl = document.createElement('span');
+timeEl.className = 'log-time';
+timeEl.textContent = ts;
+const typeEl = document.createElement('span');
+typeEl.className = 'log-type '+type.toLowerCase();
+typeEl.textContent = type;
+const msgEl = document.createElement('span');
+msgEl.className = 'log-msg '+type.toLowerCase();
+line.appendChild(timeEl);
+line.appendChild(typeEl);
+line.appendChild(msgEl);
+actLog.appendChild(line);
+actLog.scrollTop = actLog.scrollHeight;
+let idx = 0;
+const text = message;
+function typeChar(){
+if(idx < text.length){
+msgEl.textContent += text[idx];
+idx++;
+actLog.scrollTop = actLog.scrollHeight;
+setTimeout(typeChar, 4);
+}else{
+logBusy = false;
+processLogQueue();
+}
+}
+typeChar();
+}
+
+function logActivity(type, message){
+logQueue.push({type, message});
+processLogQueue();
+}
+
+fileDrop.addEventListener('click',()=>fileInput.click());
+fileInput.addEventListener('change',()=>{handleFiles(fileInput.files);fileInput.value='';});
+fileDrop.addEventListener('dragover',e=>{e.preventDefault();fileDrop.classList.add('dragover');});
+fileDrop.addEventListener('dragleave',()=>fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop',e=>{
+e.preventDefault();
+fileDrop.classList.remove('dragover');
+handleFiles(e.dataTransfer.files);
+});
+
+function fmtSize(n){ return n<1024?n+'B':n<1048576?(n/1024).toFixed(1)+'KB':(n/1048576).toFixed(1)+'MB'; }
+
+function handleFiles(files){
+if(!files||files.length===0) return;
+for(let f of files){
+const sz = fmtSize(f.size);
+const item = document.createElement('div');
+item.className = 'file-item';
+item.innerHTML = '<span class="file-item-icon">◈</span><span class="file-item-name">'+f.name+'</span><span class="file-item-size">'+sz+'</span>';
+fileList.appendChild(item);
+logActivity('FILE', 'Uploading: '+f.name+' ('+sz+')');
+const fd = new FormData();
+fd.append('file', f);
+fetch('http://localhost:8765/api/upload',{method:'POST',body:fd})
+.then(r=>r.json())
+.then(d=>logActivity('FILE', 'Saved: '+d.filename))
+.catch(()=>logActivity('FILE', f.name+' (local only — backend offline)'));
+}
+}
+
+class VaultHUD {
+constructor(canvas){
+this.canvas = canvas;
+this.ctx = canvas.getContext('2d');
+this.state = 'idle';
+this.t = 0;
+this.rings = [
+{r:0.28,speed:0.003,arc:1.2,color:'primary',offset:0},
+{r:0.33,speed:-0.005,arc:0.8,color:'border-b',offset:1.0},
+{r:0.38,speed:0.007,arc:1.5,color:'primary-dim',offset:0.5},
+{r:0.44,speed:-0.004,arc:0.6,color:'accent',offset:2.1},
+{r:0.49,speed:0.009,arc:1.0,color:'green-dark',offset:0.3},
+{r:0.54,speed:-0.006,arc:1.8,color:'border-b',offset:1.7},
+{r:0.60,speed:0.005,arc:0.9,color:'primary',offset:0.9}
+];
+this.rings.forEach(r=>r.angle=r.offset);
+this.scanners = [{angle:0,speed:0.025,color:'primary'},{angle:Math.PI,speed:-0.018,color:'green-dark'}];
+this.particles = [];
+this.pulseRings = [];
+this.lastState = 'idle';
+this.doneTimer = 0;
+this.symbolBlink = 0;
+this.W = 0; this.H = 0; this.CX = 0; this.CY = 0; this.R = 0;
+this.resize();
+this.raf = requestAnimationFrame(this.frame.bind(this));
+}
+
+getColor(name){
+const map = {
+'primary':'#00d4ff','primary-dim':'#007a99','primary-ghost':'#001f2e',
+'border-b':'#1a5c7a','border':'#0d3347',
+'accent':'#ff6b00','accent2':'#ffcc00',
+'green':'#00ff88','green-dark':'#00aa55',
+'red':'#ff3355','text':'#8ffcff','text-dim':'#3a8a9a'
+};
+return map[name]||'#00d4ff';
+}
+
+setState(s){
+if(this.state === s) return;
+const prev = this.state;
+this.state = s;
+if(s === 'processing'){
+for(let i=0;i<8;i++) this.spawnParticle(true);
+}
+if(s === 'done'){
+this.pulseRings.push({r:0,maxR:this.R*0.7,alpha:1.0,color:this.getColor('green')});
+this.pulseRings.push({r:0,maxR:this.R*0.5,alpha:1.0,color:this.getColor('green-dark')});
+this.doneTimer = 800;
+setTimeout(()=>{if(this.state==='done')this.state='idle';},800);
+}
+if(s === 'error'){
+this.pulseRings.push({r:0,maxR:this.R*0.6,alpha:1.0,color:this.getColor('red')});
+setTimeout(()=>{if(this.state==='error')this.state='idle';},1200);
+}
+}
+
+spawnParticle(burst=false){
+const angle = Math.random()*Math.PI*2;
+const speed = burst ? 1.2+Math.random()*2 : 0.5+Math.random();
+const life = burst ? 0.8+Math.random()*0.4 : 0.6+Math.random()*0.6;
+this.particles.push({
+x:this.CX, y:this.CY,
+vx: Math.cos(angle)*speed,
+vy: Math.sin(angle)*speed,
+life:life, maxLife:life,
+size: burst ? 2.5 : 1.5
+});
+}
+
+resize(){
+const parent = this.canvas.parentElement;
+const sz = Math.min(parent.clientWidth, 260);
+this.canvas.width = sz;
+this.canvas.height = sz;
+this.W = sz; this.H = sz;
+this.CX = sz/2; this.CY = sz/2;
+this.R = sz/2 * 0.88;
+}
+
+frame(ts){
+this.t += 0.016;
+this.symbolBlink += 0.05;
+const ctx = this.ctx;
+const {CX,CY,R,W,H,state,t} = this;
+ctx.clearRect(0,0,W,H);
+
+const processing = state === 'processing';
+const stateColor = state==='idle'?this.getColor('primary'):state==='processing'?this.getColor('accent'):state==='done'?this.getColor('green'):this.getColor('red');
+
+ctx.strokeStyle = 'rgba(0,212,255,0.12)';
+ctx.lineWidth = 1;
+ctx.beginPath();ctx.moveTo(0,CY);ctx.lineTo(W,CY);ctx.stroke();
+ctx.beginPath();ctx.moveTo(CX,0);ctx.lineTo(CX,H);ctx.stroke();
+
+for(let i=0;i<36;i++){
+const a = (i*10)*Math.PI/180;
+const major = i%3===0;
+const inner = R*(major?0.80:0.86);
+const outer = R*0.94;
+const c = Math.cos(a), s = Math.sin(a);
+ctx.strokeStyle = major ? 'rgba(0,212,255,0.35)' : 'rgba(0,212,255,0.15)';
+ctx.lineWidth = major ? 1.5 : 0.8;
+ctx.beginPath();
+ctx.moveTo(CX+c*inner,CY+s*inner);
+ctx.lineTo(CX+c*outer,CY+s*outer);
+ctx.stroke();
+}
+
+const speedMult = processing ? 2.5 : 1;
+this.rings.forEach(ring=>{
+ring.angle += ring.speed * speedMult;
+const rad = ring.r * R;
+let col = this.getColor(ring.color);
+if(processing && ring.color==='primary') col = this.getColor('accent');
+const alpha = processing ? 0.7 : 0.5;
+ctx.strokeStyle = col + Math.round(alpha*255).toString(16).padStart(2,'0');
+ctx.lineWidth = 1.5;
+ctx.beginPath();
+ctx.arc(CX,CY,rad,ring.angle,ring.angle+ring.arc);
+ctx.stroke();
+});
+
+this.scanners.forEach(sc=>{
+sc.angle += sc.speed * (processing ? 2 : 1);
+const c1 = state==='processing'?this.getColor('accent2'):this.getColor(sc.color);
+const grad = ctx.createConicalGradient ? null : null;
+ctx.save();
+ctx.strokeStyle = c1+'cc';
+ctx.lineWidth = 2;
+ctx.beginPath();
+ctx.arc(CX,CY,R*0.72,sc.angle,sc.angle+0.4);
+ctx.stroke();
+ctx.strokeStyle = c1+'44';
+ctx.lineWidth = 3;
+ctx.beginPath();
+ctx.arc(CX,CY,R*0.72,sc.angle,sc.angle+0.25);
+ctx.stroke();
+ctx.restore();
+});
+
+const brk = 16;
+const brkLines = [
+[-R*0.94,-R*0.94,'right','down'],
+[R*0.94,-R*0.94,'left','down'],
+[-R*0.94,R*0.94,'right','up'],
+[R*0.94,R*0.94,'left','up']
+];
+ctx.strokeStyle = 'rgba(0,212,255,0.4)';
+ctx.lineWidth = 1.5;
+brkLines.forEach(([ox,oy,hdir,vdir])=>{
+const x=CX+ox,y=CY+oy;
+const hx = hdir==='right'?x+brk:x-brk;
+const vy = vdir==='down'?y+brk:y-brk;
+ctx.beginPath();ctx.moveTo(hx,y);ctx.lineTo(x,y);ctx.lineTo(x,vy);ctx.stroke();
+});
+
+this.pulseRings = this.pulseRings.filter(pr=>{
+pr.r += R*0.022;
+pr.alpha -= 0.03;
+if(pr.alpha <= 0) return false;
+ctx.strokeStyle = pr.color + Math.round(pr.alpha*255).toString(16).padStart(2,'0');
+ctx.lineWidth = 1.5;
+ctx.beginPath();
+ctx.arc(CX,CY,pr.r,0,Math.PI*2);
+ctx.stroke();
+return true;
+});
+
+if(processing && Math.random() < 0.15) this.spawnParticle(false);
+if(Math.random() < 0.03) this.spawnParticle(false);
+this.particles = this.particles.filter(p=>{
+p.x += p.vx; p.y += p.vy; p.life -= 0.025;
+if(p.life <= 0) return false;
+const lifeRatio = p.life / p.maxLife;
+const col = state==='processing'?this.getColor('accent2'):this.getColor('primary');
+ctx.fillStyle = col + Math.round(lifeRatio*200).toString(16).padStart(2,'0');
+ctx.beginPath();
+ctx.arc(p.x,p.y,p.size*lifeRatio,0,Math.PI*2);
+ctx.fill();
+return true;
+});
+
+const pulseScale = 1 + Math.sin(t*3)*0.06;
+const glowR = R*0.12*pulseScale;
+const grd = ctx.createRadialGradient(CX,CY,0,CX,CY,glowR*1.8);
+grd.addColorStop(0, stateColor+'66');
+grd.addColorStop(1, stateColor+'00');
+ctx.fillStyle = grd;
+ctx.beginPath();ctx.arc(CX,CY,glowR*1.8,0,Math.PI*2);ctx.fill();
+ctx.strokeStyle = stateColor+'cc';
+ctx.lineWidth = 2;
+ctx.beginPath();ctx.arc(CX,CY,glowR,0,Math.PI*2);ctx.stroke();
+ctx.strokeStyle = stateColor+'44';
+ctx.lineWidth = 1;
+ctx.beginPath();ctx.arc(CX,CY,glowR*1.3,0,Math.PI*2);ctx.stroke();
+
+const symMap = {idle:'◈',processing:'▷',done:'●',error:'⊘'};
+const sym = symMap[state]||'◈';
+const symAlpha = state==='idle' ? (0.7+Math.sin(this.symbolBlink)*0.3) : 1.0;
+ctx.fillStyle = stateColor + Math.round(symAlpha*255).toString(16).padStart(2,'0');
+ctx.font = `bold ${Math.round(R*0.14)}px Courier New,monospace`;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText(sym, CX, CY);
+
+this.raf = requestAnimationFrame(this.frame.bind(this));
+}
+}
+
+const hud = new VaultHUD($('hud-canvas'));
+window.hud = hud;
+
+window.addEventListener('resize',()=>{
+hud.resize();
+});
+
+const initMsgs = [
+{type:'SYS', msg:'V.A.U.L.T. MARK X — ONLINE', delay:200},
+{type:'SYS', msg:'Virtual Assistant for Universal & Local Tasks', delay:500},
+{type:'SYS', msg:'Connecting to backend on port 8765...', delay:900},
+{type:'VAULT', msg:'Terminal Hub initialized. Select a model and enter command.', delay:1400}
+];
+initMsgs.forEach(m=>setTimeout(()=>logActivity(m.type,m.msg),m.delay));
+
+connectMetricsWs();
+connectTerminalWs();
+
+}());
+</script>
+</body>
+</html>
