@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>V.A.U.L.T. MARK XXII</title>
+<title>V.A.U.L.T. MARK XXIII</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
@@ -392,8 +392,8 @@ function VaultHoloAnimation({activeModel,animState}){
       ctx.fillText("V.A.U.L.T.",cx,cy-22);
       ctx.restore();
 
-      // Subtitle
-      const sub=animState==="responding"?"PROCESSING . . .":animState==="active"?"● ACTIVE":`MARK XXII · ${activeModel.toUpperCase()}`;
+      // Subtitle — MARK XXIII
+      const sub=animState==="responding"?"PROCESSING . . .":animState==="active"?"● ACTIVE":`MARK XXIII · ${activeModel.toUpperCase()}`;
       ctx.save();
       ctx.fillStyle=rgba(Math.min(1,glow*0.55));
       ctx.font=`${Math.min(W*0.02,13)}px 'Fira Code', monospace`;
@@ -434,36 +434,98 @@ function ProgressBar({pct=0,color="#e09d55",h=4}){
 }
 
 // ── Claude Card ───────────────────────────────────────────────────────────────
-function ClaudeCard({u}){
+function ClaudeCard({u}) {
   if(!u) return <div className="uc cl"><div className="uc-name">Claude · Code</div><div className="muted mono t10">Loading…</div></div>;
-  return(
+
+  const sessPercent = u.session_percentage || 0;
+  const weekPercent = u.weekly_percentage || 0;
+  const sessColor = sessPercent > 85 ? "#ff5a6a" : sessPercent > 60 ? "#f0c040" : "var(--claude)";
+  const weekColor = weekPercent > 85 ? "#ff5a6a" : weekPercent > 60 ? "#f0c040" : "var(--claude)";
+
+  return (
     <div className="uc cl">
-      <div className="uc-name">Claude · Code</div>
-      <div className="balance-big" style={{color:"var(--claude)",textShadow:"0 0 16px rgba(224,157,85,0.45)",fontSize:"22px"}}>
-        {u.session_messages} <span style={{fontSize:"12px",opacity:0.6}}>/ {u.session_limit}</span>
+      <div className="f ac jb mb4">
+        <div className="uc-name" style={{marginBottom:0}}>Claude · Code</div>
+        <div style={{fontFamily:"var(--f-mono)",fontSize:"9px",color:"var(--txt-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Pro Plan</div>
       </div>
-      <div className="balance-sub">Session Messages</div>
-      <div style={{marginTop:6}}>
-        <ProgressBar pct={u.session_percentage} color="var(--claude)"/>
-        <div className="uc-reset">Reset {fmtSecs(u.session_reset_in)} · Weekly: {u.weekly_messages}/{u.weekly_limit}</div>
+
+      <div style={{marginBottom:8}}>
+        <div className="f ac jb" style={{marginBottom:3}}>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"10px",color:"var(--txt-muted)"}}>Session</span>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"12px",color:sessColor,fontWeight:600}}>
+            {u.session_messages} <span style={{opacity:0.5,fontSize:"10px"}}>/ {u.session_limit}</span>
+          </span>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.06)",borderRadius:3,height:5,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${Math.min(100,sessPercent)}%`,background:`linear-gradient(90deg,${sessColor}88,${sessColor})`,borderRadius:3,transition:"width 0.6s ease",boxShadow:`0 0 6px ${sessColor}55`}}/>
+        </div>
+        <div style={{fontFamily:"var(--f-mono)",fontSize:"9.5px",color:"var(--txt-muted)",marginTop:2}}>
+          Resets in {fmtSecs(u.session_reset_in)}
+        </div>
+      </div>
+
+      <div>
+        <div className="f ac jb" style={{marginBottom:3}}>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"10px",color:"var(--txt-muted)"}}>Weekly</span>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"12px",color:weekColor,fontWeight:600}}>
+            {u.weekly_messages} <span style={{opacity:0.5,fontSize:"10px"}}>/ {u.weekly_limit}</span>
+          </span>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.06)",borderRadius:3,height:5,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${Math.min(100,weekPercent)}%`,background:`linear-gradient(90deg,${weekColor}88,${weekColor})`,borderRadius:3,transition:"width 0.6s ease",boxShadow:`0 0 6px ${weekColor}55`}}/>
+        </div>
+        <div style={{fontFamily:"var(--f-mono)",fontSize:"9.5px",color:"var(--txt-muted)",marginTop:2}}>
+          Resets in {fmtSecs(u.weekly_reset_in)}
+        </div>
       </div>
     </div>
   );
 }
 
 // ── Gemini Card ───────────────────────────────────────────────────────────────
-function GeminiCard({u}){
+function GeminiCard({u}) {
   if(!u) return <div className="uc gm"><div className="uc-name">Gemini · CLI</div><div className="muted mono t10">Loading…</div></div>;
-  return(
+
+  const dailyPercent = u.daily_percentage || 0;
+  const weekPercent = u.weekly_percentage || 0;
+  const dailyColor = dailyPercent > 85 ? "#ff5a6a" : dailyPercent > 60 ? "#f0c040" : "var(--gemini)";
+  const weekColor = weekPercent > 85 ? "#ff5a6a" : weekPercent > 60 ? "#f0c040" : "var(--gemini)";
+
+  return (
     <div className="uc gm">
-      <div className="uc-name">Gemini · CLI</div>
-      <div className="balance-big" style={{color:"var(--gemini)",textShadow:"0 0 16px rgba(184,141,232,0.45)",fontSize:"22px"}}>
-        {u.daily_calls} <span style={{fontSize:"12px",opacity:0.6}}>/ {u.daily_limit}</span>
+      <div className="f ac jb mb4">
+        <div className="uc-name" style={{marginBottom:0}}>Gemini · CLI</div>
+        <div style={{fontFamily:"var(--f-mono)",fontSize:"9px",color:"var(--txt-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Free Tier</div>
       </div>
-      <div className="balance-sub">Daily Calls</div>
-      <div style={{marginTop:6}}>
-        <ProgressBar pct={u.daily_percentage} color="var(--gemini)"/>
-        <div className="uc-reset">Reset {fmtSecs(u.daily_reset_in)} · Weekly: {u.weekly_calls}/{u.weekly_limit}</div>
+
+      <div style={{marginBottom:8}}>
+        <div className="f ac jb" style={{marginBottom:3}}>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"10px",color:"var(--txt-muted)"}}>Daily</span>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"12px",color:dailyColor,fontWeight:600}}>
+            {u.daily_calls} <span style={{opacity:0.5,fontSize:"10px"}}>/ {u.daily_limit}</span>
+          </span>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.06)",borderRadius:3,height:5,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${Math.min(100,dailyPercent)}%`,background:`linear-gradient(90deg,${dailyColor}88,${dailyColor})`,borderRadius:3,transition:"width 0.6s ease",boxShadow:`0 0 6px ${dailyColor}55`}}/>
+        </div>
+        <div style={{fontFamily:"var(--f-mono)",fontSize:"9.5px",color:"var(--txt-muted)",marginTop:2}}>
+          Resets in {fmtSecs(u.daily_reset_in)}
+        </div>
+      </div>
+
+      <div>
+        <div className="f ac jb" style={{marginBottom:3}}>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"10px",color:"var(--txt-muted)"}}>Weekly</span>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"12px",color:weekColor,fontWeight:600}}>
+            {u.weekly_calls} <span style={{opacity:0.5,fontSize:"10px"}}>/ {u.weekly_limit}</span>
+          </span>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.06)",borderRadius:3,height:5,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${Math.min(100,weekPercent)}%`,background:`linear-gradient(90deg,${weekColor}88,${weekColor})`,borderRadius:3,transition:"width 0.6s ease",boxShadow:`0 0 6px ${weekColor}55`}}/>
+        </div>
+        <div style={{fontFamily:"var(--f-mono)",fontSize:"9.5px",color:"var(--txt-muted)",marginTop:2}}>
+          Resets in {fmtSecs(u.weekly_reset_in)}
+        </div>
       </div>
     </div>
   );
@@ -556,6 +618,21 @@ function ContextBridge({counts,termRefs,onLog,onSwitch}){
   const[note,setNote]=useState("");
   const[busy,setBusy]=useState(false);
   const openModal=m=>{setSrc(m);setTarget(null);setNote("");setShowModal(true)};
+
+  const cleanBrief = (text) => {
+    return text
+      .replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '')  // strip ANSI
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')  // collapse 3+ blank lines to 2
+      .replace(/[ \t]+$/gm, '')    // strip trailing whitespace per line
+      .trim();
+  };
+
+  const formatAsMarkdown = (text, src, target, ts) => {
+    return `\r\n\x1b[1;33m## Context Bridge: ${src.toUpperCase()} → ${target.toUpperCase()} [${ts}]\x1b[0m\r\n\r\n${cleanBrief(text)}\r\n\r\n\x1b[1;33m---\x1b[0m\r\n`;
+  };
+
   const doTransfer=async()=>{
     if(!src||!target||busy)return;
     setBusy(true);
@@ -570,9 +647,7 @@ function ContextBridge({counts,termRefs,onLog,onSwitch}){
       const ws=termRefs.current[target]?.wsRef?.current;
       if(ws&&ws.readyState===1){
         const ts=new Date().toISOString().slice(0,16).replace("T"," ");
-        ws.send(`\r\n\x1b[1;33m━━━ CONTEXT BRIDGE ${src.toUpperCase()} → ${target.toUpperCase()} [${ts}] ━━━\x1b[0m\r\n`);
-        ws.send(brief+"\r\n");
-        ws.send(`\x1b[1;33m━━━ END CONTEXT BRIDGE ━━━\x1b[0m\r\n`);
+        ws.send(formatAsMarkdown(brief, src, target, ts));
       }
       onLog?.(`Bridge: ${src} → ${target}`,CLR[src]);
       onSwitch?.(target);setShowModal(false);
@@ -829,6 +904,11 @@ function CouncilPanel({onLog}) {
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState(null);
   const [showSystem, setShowSystem] = useState(false);
+  const [models, setModels] = useState({claude:"claude-3-haiku",gemini:"gemini-flash",kimi:"moonshot"});
+
+  useEffect(() => {
+    fetch(`${API}/api/council-models`).then(r=>r.json()).then(d=>setModels(d)).catch(()=>{});
+  }, []);
 
   const send = async () => {
     if(!prompt.trim() || busy) return;
@@ -863,7 +943,10 @@ function CouncilPanel({onLog}) {
             {["claude","gemini","kimi"].map(m=>(
               <div key={m} className="f ac gap4" style={{padding:"3px 8px",borderRadius:4,background:`${CLR[m]}18`,border:`1px solid ${CLR[m]}44`}}>
                 <div className="ai-dot" style={{background:CLR[m],color:CLR[m]}}/>
-                <span style={{fontFamily:"var(--f-mono)",fontSize:10,color:CLR[m]}}>{m}</span>
+                <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                  <span style={{fontFamily:"var(--f-mono)",fontSize:10,color:CLR[m]}}>{m}</span>
+                  <span style={{fontFamily:"var(--f-mono)",fontSize:"7.5px",color:"var(--txt-muted)",opacity:0.7,maxWidth:70,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={models[m]}>{models[m]}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -916,12 +999,13 @@ function CouncilPanel({onLog}) {
             {results && (
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:12}}>
                 {results.map((r,i)=>{
-                  const model = r.model || ["claude","gemini","kimi"][i] || "unknown";
-                  const col = CLR[model] || "var(--txt)";
+                  const slotName = r.slot || ["claude","gemini","kimi"][i] || "unknown";
+                  const col = CLR[slotName] || "var(--txt)";
                   return (
                     <div key={i} style={{background:"#04070f",border:`1px solid ${col}33`,borderRadius:8,overflow:"hidden"}}>
-                      <div style={{padding:"6px 10px",borderBottom:`1px solid ${col}22`,fontFamily:"var(--f-mono)",fontSize:10,color:col,textTransform:"uppercase",letterSpacing:"0.1em"}}>
-                        ● {model} {r.tokens?`· ${r.tokens} tok`:""}
+                      <div style={{padding:"6px 10px",borderBottom:`1px solid ${col}22`,fontFamily:"var(--f-mono)",fontSize:10,color:col}}>
+                        <div style={{textTransform:"uppercase",letterSpacing:"0.1em"}}>● {slotName} {r.tokens?`· ${r.tokens} tok`:""}</div>
+                        <div style={{fontSize:"8.5px",opacity:0.55,marginTop:1}}>{r.model || ""}</div>
                       </div>
                       <div style={{padding:"8px 10px",fontFamily:"var(--f-mono)",fontSize:11,color:"var(--txt-dim)",lineHeight:1.65,whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:320,overflowY:"auto"}}>
                         {r.error ? <span style={{color:"#ff5a6a"}}>Error: {r.error}</span> : r.response}
@@ -1100,8 +1184,19 @@ function TerminalHub({counts,termRefs,onMsg,active,setActive,onLog,onUserInput,o
             )}
           </button>
         ))}
-        <button className={`bc-btn${bc?" on":""}`} onClick={()=>setBc(b=>!b)}>{bc?"⚡ Broadcast ON":"Broadcast"}</button>
+        <button
+          className={`bc-btn${bc?" on":""}`}
+          onClick={()=>setBc(b=>!b)}
+          title="Broadcast Mode: sends your keystrokes to ALL 3 terminals simultaneously. Useful for running the same command on Claude, Gemini and Kimi at the same time."
+        >
+          {bc?"⚡ Broadcast ON":"Broadcast"}
+        </button>
       </div>
+      {bc && (
+        <div style={{padding:"3px 10px",background:"rgba(240,192,64,0.08)",borderBottom:"1px solid rgba(240,192,64,0.2)",fontFamily:"var(--f-mono)",fontSize:"10px",color:"var(--yellow)"}}>
+          ⚡ Broadcast Mode: Her tuş 3 terminale aynı anda gönderiliyor
+        </div>
+      )}
       <div className="term-body">
         <VaultHoloAnimation activeModel={active} animState={termRefs._animState||"idle"}/>
         {MODELS.map(m=>(
@@ -1170,7 +1265,7 @@ function App(){
   },[]);
 
   useEffect(()=>{
-    addLog("V.A.U.L.T. MARK XXII online","var(--claude)");
+    addLog("V.A.U.L.T. MARK XXIII online","var(--claude)");
     addLog("Council Mode initialized — OpenRouter ready","var(--yellow)");
     addLog("Neural animation active","var(--gemini)");
   },[]);

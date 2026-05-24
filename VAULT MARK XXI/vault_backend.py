@@ -55,19 +55,23 @@ TOOL_LAUNCH = {
     "gemini": "gemini --yolo\r\n",
 }
 
+# ── Fix #1: Clean BANNER ─────────────────────────────────────────────────────
 BANNER = r"""
- __   ___   _   _   _  _____     __  __  __  __
- \ \ / / | | | | | | ||_   _|   |  \/  |/  \|  \
-  \ V /| |_| | | | | |  | |     | |\/| | /\ | /\ |
-   \_/ |  _  | | |_| |  | |     | |  | | \/ | \/  |
-   | | | | | | |  _  |  | |     | |  | |\__/|__|
-   |_| |_| |_| |_| |_|  |_|     |_|  |_|
+ __   ___   _   _   _  _____
+ \ \ / / | | | | | | ||_   _|
+  \ V /| |_| | | | | |  | |
+   \_/ |  _  | | |_| |  | |
+        | | | |  _  |  | |
+        |_| |_|_| |_|  |_|
 
+  V.A.U.L.T. MARK XXIII
   Virtual Assistant for Universal & Local Tasks
-  MARK XXII — Council Mode + Bug Fixes
+  Council Mode · Bug Fixes · OpenRouter Integration
+  http://localhost:8765
 """
 
-app = FastAPI(title="V.A.U.L.T. MARK XXII")
+# ── Fix #5: Updated MARK number ──────────────────────────────────────────────
+app = FastAPI(title="V.A.U.L.T. MARK XXIII")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -260,11 +264,13 @@ async def _get_session(model: str) -> PtySession:
         return session
 
 
+# ── Fix #4: Model-specific launch delay ──────────────────────────────────────
 async def _launch_tool(session: PtySession, model: str) -> None:
-    await asyncio.sleep(1.2)
+    delay = 1.5 if model == "gemini" else 1.2
+    await asyncio.sleep(delay)
     if session.is_alive():
         session.write("chcp 65001 | Out-Null\r\n")
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0.5)
         if model in TOOL_LAUNCH:
             session.write(TOOL_LAUNCH[model])
         session._launched = True
@@ -441,7 +447,24 @@ async def get_gemini_usage() -> JSONResponse:
     })
 
 
-# ── Prompt optimizer ──────────────────────────────────────────────────────────
+# ── Fix #3: Prompt optimizer via OpenRouter (no Gemini CLI subprocess) ────────
+
+# ── OpenRouter key loading ────────────────────────────────────────────────────
+_OR_KEY_FILE = MARK_DIR / "openrouter_key.txt"
+OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "")
+if not OPENROUTER_KEY and _OR_KEY_FILE.exists():
+    try:
+        OPENROUTER_KEY = _OR_KEY_FILE.read_text(encoding="utf-8").strip()
+    except Exception:
+        pass
+
+# ── Fix #2: Corrected OpenRouter model IDs ───────────────────────────────────
+COUNCIL_MODELS = {
+    "claude": "anthropic/claude-3-haiku",
+    "gemini": "google/gemini-flash-1.5-8b",
+    "kimi":   "moonshot/moonshot-v1-8k",
+}
+
 
 @app.post("/api/optimize-prompt")
 async def optimize_prompt(req: Request) -> JSONResponse:
@@ -457,29 +480,34 @@ async def optimize_prompt(req: Request) -> JSONResponse:
         f"Original prompt:\n{prompt}"
     )
 
-    loop = asyncio.get_running_loop()
+    if not OPENROUTER_KEY:
+        return JSONResponse({"error": "OpenRouter key not configured"}, status_code=500)
+
     try:
-        def _run():
-            return subprocess.run(
-                ["gemini", "-p", full],
-                capture_output=True, text=True,
-                encoding="utf-8", errors="replace",
-                timeout=60,
-                env={**os.environ, "TERM": "dumb", "NO_COLOR": "1"},
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_KEY}",
+                    "HTTP-Referer": "http://localhost:8765",
+                    "X-Title": "V.A.U.L.T.",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": COUNCIL_MODELS["gemini"],
+                    "messages": [{"role": "user", "content": full}],
+                    "max_tokens": 800,
+                }
             )
-        result = await loop.run_in_executor(None, _run)
-        output = _ANSI_RE.sub("", (result.stdout or "")).strip()
-        if not output:
-            stderr = _ANSI_RE.sub("", (result.stderr or "")).strip()
-            return JSONResponse({"error": f"Gemini CLI error: {stderr[:300]}"}, status_code=500)
+        data = r.json()
+        if "choices" not in data:
+            err = data.get("error", {})
+            return JSONResponse({"error": str(err.get("message", data))}, status_code=500)
+        output = data["choices"][0]["message"]["content"].strip()
         _gemini_usage["daily_calls"]  += 1
         _gemini_usage["weekly_calls"] += 1
         _save_gemini_usage()
         return JSONResponse({"optimized": output})
-    except subprocess.TimeoutExpired:
-        return JSONResponse({"error": "Gemini CLI timed out (60s)"}, status_code=500)
-    except FileNotFoundError:
-        return JSONResponse({"error": "Gemini CLI not found in PATH"}, status_code=500)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
@@ -505,21 +533,33 @@ async def optimize_context(req: Request) -> JSONResponse:
         f"Terminal session:\n{history[:4000]}"
     )
 
-    loop = asyncio.get_running_loop()
+    if not OPENROUTER_KEY:
+        return JSONResponse({"optimized": None, "error": "OpenRouter key not configured"})
+
     try:
-        def _run():
-            return subprocess.run(
-                ["gemini", "-p", system_prompt],
-                capture_output=True, text=True,
-                encoding="utf-8", errors="replace",
-                timeout=60,
-                env={**os.environ, "TERM": "dumb", "NO_COLOR": "1"},
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_KEY}",
+                    "HTTP-Referer": "http://localhost:8765",
+                    "X-Title": "V.A.U.L.T.",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": COUNCIL_MODELS["gemini"],
+                    "messages": [{"role": "user", "content": system_prompt}],
+                    "max_tokens": 1000,
+                }
             )
-        result = await loop.run_in_executor(None, _run)
-        output = _ANSI_RE.sub("", (result.stdout or "")).strip()
+        data = r.json()
+        if "choices" not in data:
+            err = data.get("error", {})
+            return JSONResponse({"optimized": None, "error": str(err.get("message", data))})
+        output = data["choices"][0]["message"]["content"].strip()
         if output:
             return JSONResponse({"optimized": output})
-        return JSONResponse({"optimized": None, "error": "no output from Gemini CLI"})
+        return JSONResponse({"optimized": None, "error": "no output from OpenRouter"})
     except Exception as e:
         return JSONResponse({"optimized": None, "error": str(e)})
 
@@ -673,21 +713,11 @@ async def shutdown_server() -> JSONResponse:
     return JSONResponse({"ok": True})
 
 
-# ── Council Mode (OpenRouter) ─────────────────────────────────────────────────
+# ── Fix #2: Council Mode (OpenRouter) with improved error handling ─────────────
 
-_OR_KEY_FILE = MARK_DIR / "openrouter_key.txt"
-OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "")
-if not OPENROUTER_KEY and _OR_KEY_FILE.exists():
-    try:
-        OPENROUTER_KEY = _OR_KEY_FILE.read_text(encoding="utf-8").strip()
-    except Exception:
-        pass
-
-COUNCIL_MODELS = {
-    "claude": "anthropic/claude-3.5-sonnet",
-    "gemini": "google/gemini-flash-1.5",
-    "kimi":   "moonshotai/moonshot-v1-8k",
-}
+@app.get("/api/council-models")
+async def get_council_models() -> JSONResponse:
+    return JSONResponse({"models": COUNCIL_MODELS})
 
 
 @app.post("/api/council")
@@ -725,14 +755,14 @@ async def council_query(req: Request) -> JSONResponse:
                 if r.status_code != 200:
                     err = data.get("error", {})
                     err_msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
-                    return {"model": name, "response": None, "tokens": 0, "error": err_msg}
+                    return {"model": name, "error": err_msg}
 
-                choice   = data["choices"][0]["message"]["content"]
-                usage    = data.get("usage", {})
-                tokens   = usage.get("total_tokens", usage.get("completion_tokens", 0))
+                choice = data["choices"][0]["message"]["content"]
+                usage  = data.get("usage", {})
+                tokens = usage.get("total_tokens", usage.get("completion_tokens", 0))
                 return {"model": name, "response": choice, "tokens": tokens}
         except Exception as e:
-            return {"model": name, "response": None, "tokens": 0, "error": str(e)[:300]}
+            return {"model": name, "error": str(e)[:300]}
 
     tasks   = [_query_model(name, model_id) for name, model_id in COUNCIL_MODELS.items()]
     results = await asyncio.gather(*tasks)
@@ -849,12 +879,22 @@ if __name__ == "__main__":
     _load_gemini_usage()
     print(BANNER)
 
+    async def _startup():
+        # Pre-warm all three terminals so they're ready when browser opens
+        await asyncio.sleep(0.5)
+        for model in SPAWN_CMD:
+            try:
+                await _get_session(model)
+            except Exception:
+                pass
+
     async def _open_browser() -> None:
-        await asyncio.sleep(2.0)
+        await asyncio.sleep(2.5)
         webbrowser.open(f"http://localhost:{PORT}")
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+    loop.create_task(_startup())
     loop.create_task(_open_browser())
     cfg = uvicorn.Config(app, host=HOST, port=PORT, log_level="warning", loop="asyncio")
     loop.run_until_complete(uvicorn.Server(cfg).serve())
