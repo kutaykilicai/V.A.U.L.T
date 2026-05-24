@@ -9,7 +9,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8765 " 2^>nul') do (
 timeout /t 1 /nobreak >nul
 
 rem Arkaplanda minimized pencerede baslat
-start "V.A.U.L.T. MARK XXI" /min "%~dp0launch_bg.bat"
+start "V.A.U.L.T. MARK XXII" /min "%~dp0launch_bg.bat"
 
 rem Tarayici ac
 timeout /t 3 /nobreak >nul

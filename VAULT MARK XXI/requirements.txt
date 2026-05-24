@@ -5,4 +5,3 @@ psutil
 pywinpty
 beautifulsoup4
 lxml
-playwright

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>V.A.U.L.T. MARK XXI</title>
+<title>V.A.U.L.T. MARK XXII</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
@@ -158,12 +158,6 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 .ki{width:100%;padding:6px 9px;font-family:var(--f-mono);font-size:12px;color:var(--txt);outline:none;background:transparent;border:none}
 .ki::placeholder{color:var(--txt-muted)}
 .nline{height:1px;background:linear-gradient(90deg,transparent,var(--border-hi),transparent);margin:2px 0}
-
-/* second brain */
-.sb-item{display:flex;align-items:center;gap:5px;padding:4px 6px;border-radius:4px;cursor:pointer;transition:background 0.12s;font-size:12px;color:var(--txt-dim)}
-.sb-item:hover{background:rgba(255,255,255,0.05);color:var(--txt)}
-.sb-item.dir{color:var(--kimi)}
-.sb-content{font-family:var(--f-mono);font-size:11px;color:var(--txt);line-height:1.65;white-space:pre-wrap;word-break:break-word;overflow-y:auto;max-height:340px;padding:8px 10px}
 </style>
 </head>
 <body>
@@ -191,6 +185,16 @@ function nowTs(){return new Date().toLocaleTimeString("en-US",{hour12:false,hour
 function stripAnsi(s){
   return(s||"").replace(/\x1B\[[0-9;]*[a-zA-Z]/g,"").replace(/\x1B\][^\x07]*\x07/g,"")
     .replace(/\x1B[@-Z\\-_]/g,"").replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+}
+
+// ── Live Clock ─────────────────────────────────────────────────────────────────
+function LiveClock() {
+  const [t, setT] = useState(() => new Date().toLocaleTimeString("tr-TR", {hour12:false}));
+  useEffect(() => {
+    const iv = setInterval(() => setT(new Date().toLocaleTimeString("tr-TR", {hour12:false})), 1000);
+    return () => clearInterval(iv);
+  }, []);
+  return <span className="up-badge" style={{color:"var(--txt-dim)",fontFamily:"var(--f-mono)",fontSize:"11px"}}>{t}</span>;
 }
 
 // ── VAULT Holographic Animation ────────────────────────────────────────────────
@@ -389,7 +393,7 @@ function VaultHoloAnimation({activeModel,animState}){
       ctx.restore();
 
       // Subtitle
-      const sub=animState==="responding"?"PROCESSING . . .":animState==="active"?"● ACTIVE":`MARK XXI · ${activeModel.toUpperCase()}`;
+      const sub=animState==="responding"?"PROCESSING . . .":animState==="active"?"● ACTIVE":`MARK XXII · ${activeModel.toUpperCase()}`;
       ctx.save();
       ctx.fillStyle=rgba(Math.min(1,glow*0.55));
       ctx.font=`${Math.min(W*0.02,13)}px 'Fira Code', monospace`;
@@ -431,32 +435,36 @@ function ProgressBar({pct=0,color="#e09d55",h=4}){
 
 // ── Claude Card ───────────────────────────────────────────────────────────────
 function ClaudeCard({u}){
-  if(!u)return<div className="uc cl"><div className="uc-name">Claude · Code</div><div className="muted mono t10">Loading…</div></div>;
+  if(!u) return <div className="uc cl"><div className="uc-name">Claude · Code</div><div className="muted mono t10">Loading…</div></div>;
   return(
     <div className="uc cl">
       <div className="uc-name">Claude · Code</div>
-      <div className="uc-row mb4"><span className="uc-lbl">Session</span><span className="uc-val" style={{color:"var(--claude)"}}>{u.session_percentage}%</span></div>
-      <ProgressBar pct={u.session_percentage} color="var(--claude)"/>
-      <div className="uc-reset">Reset {fmtSecs(u.session_reset_in)} · {u.session_messages}/{u.session_limit} msgs</div>
-      <div className="uc-row mb4"><span className="uc-lbl">Weekly</span><span className="uc-val" style={{color:"var(--claude)"}}>{u.weekly_percentage}%</span></div>
-      <ProgressBar pct={u.weekly_percentage} color="var(--claude)"/>
-      <div className="uc-reset">Reset {fmtSecs(u.weekly_reset_in)} · {u.weekly_messages}/{u.weekly_limit}</div>
+      <div className="balance-big" style={{color:"var(--claude)",textShadow:"0 0 16px rgba(224,157,85,0.45)",fontSize:"22px"}}>
+        {u.session_messages} <span style={{fontSize:"12px",opacity:0.6}}>/ {u.session_limit}</span>
+      </div>
+      <div className="balance-sub">Session Messages</div>
+      <div style={{marginTop:6}}>
+        <ProgressBar pct={u.session_percentage} color="var(--claude)"/>
+        <div className="uc-reset">Reset {fmtSecs(u.session_reset_in)} · Weekly: {u.weekly_messages}/{u.weekly_limit}</div>
+      </div>
     </div>
   );
 }
 
 // ── Gemini Card ───────────────────────────────────────────────────────────────
 function GeminiCard({u}){
-  if(!u)return<div className="uc gm"><div className="uc-name">Gemini · CLI</div><div className="muted mono t10">Loading…</div></div>;
+  if(!u) return <div className="uc gm"><div className="uc-name">Gemini · CLI</div><div className="muted mono t10">Loading…</div></div>;
   return(
     <div className="uc gm">
       <div className="uc-name">Gemini · CLI</div>
-      <div className="uc-row mb4"><span className="uc-lbl">Daily</span><span className="uc-val" style={{color:"var(--gemini)"}}>{u.daily_percentage}%</span></div>
-      <ProgressBar pct={u.daily_percentage} color="var(--gemini)"/>
-      <div className="uc-reset">Reset {fmtSecs(u.daily_reset_in)} · {u.daily_calls}/{u.daily_limit}</div>
-      <div className="uc-row mb4"><span className="uc-lbl">Weekly</span><span className="uc-val" style={{color:"var(--gemini)"}}>{u.weekly_percentage}%</span></div>
-      <ProgressBar pct={u.weekly_percentage} color="var(--gemini)"/>
-      <div className="uc-reset">Reset {fmtSecs(u.weekly_reset_in)} · {u.weekly_calls}/{u.weekly_limit}</div>
+      <div className="balance-big" style={{color:"var(--gemini)",textShadow:"0 0 16px rgba(184,141,232,0.45)",fontSize:"22px"}}>
+        {u.daily_calls} <span style={{fontSize:"12px",opacity:0.6}}>/ {u.daily_limit}</span>
+      </div>
+      <div className="balance-sub">Daily Calls</div>
+      <div style={{marginTop:6}}>
+        <ProgressBar pct={u.daily_percentage} color="var(--gemini)"/>
+        <div className="uc-reset">Reset {fmtSecs(u.daily_reset_in)} · Weekly: {u.weekly_calls}/{u.weekly_limit}</div>
+      </div>
     </div>
   );
 }
@@ -487,12 +495,12 @@ function KimiCard({bal,onSaveKey,onRefresh}){
       {hasBalance&&(
         <div>
           <div className="balance-big" style={{color:"var(--kimi)",textShadow:"0 0 16px rgba(90,184,255,0.45)"}}>
-            ¥ {Number(bal.available_balance).toFixed(2)}
+            $ {Number(bal.available_balance).toFixed(2)}
           </div>
           <div className="balance-sub">Available Balance</div>
           {(bal.cash_balance!=null||bal.voucher_balance!=null)&&(
             <div className="balance-sub" style={{marginTop:3}}>
-              Cash ¥{Number(bal.cash_balance||0).toFixed(2)} · Voucher ¥{Number(bal.voucher_balance||0).toFixed(2)}
+              Cash $ {Number(bal.cash_balance||0).toFixed(2)} · Voucher $ {Number(bal.voucher_balance||0).toFixed(2)}
             </div>
           )}
         </div>
@@ -640,7 +648,7 @@ function SysMonitor({m}){
           </div>
         ))}
         <div className="m-row"><span className="m-lbl">NET</span><span className="mono t10 dim f1 ac" style={{textAlign:"right"}}>{fmtKb(m.net_kb||0)}</span></div>
-        <div className="m-row"><span className="m-lbl">TEMP</span><span className="mono t10" style={{color:m.tmp>80?"#ff5a6a":"var(--txt-dim)"}}>{m.tmp?`${m.tmp.toFixed(0)}°C`:"N/A"}</span></div>
+        <div className="m-row"><span className="m-lbl">TEMP</span><span className="mono t10" style={{color:m.tmp>80?"#ff5a6a":"var(--txt-dim)"}}>{m.tmp != null && m.tmp > 0 ? `${m.tmp.toFixed(0)}°C` : "N/A"}</span></div>
         <div className="m-row"><span className="m-lbl">PROC</span><span className="mono t10 dim">{m.procs||0}</span></div>
       </div>
     </div>
@@ -680,82 +688,253 @@ function PromptOptimizer({onLog}){
   );
 }
 
-// ── Second Brain ──────────────────────────────────────────────────────────────
-function SecondBrain(){
-  const[items,setItems]=useState(null);
-  const[curPath,setCurPath]=useState("");
-  const[parentPath,setParentPath]=useState(null);
-  const[fileContent,setFileContent]=useState(null);
-  const[fileName,setFileName]=useState("");
-  const[loading,setLoading]=useState(false);
-  const[error,setError]=useState(null);
+// ── Neural Animation ──────────────────────────────────────────────────────────
+function NeuralAnimation({active, animState}) {
+  const canvasRef = useRef(null);
+  const rafRef = useRef(null);
+  const nodesRef = useRef([]);
+  const tRef = useRef(0);
 
-  const loadDir=useCallback(async(p="")=>{
-    setLoading(true);setFileContent(null);setError(null);
-    try{
-      const r=await fetch(`${API}/api/second-brain/list?path=${encodeURIComponent(p)}`);
-      const d=await r.json();
-      if(d.error==="not_found"){setError(`Path not found: ${d.base||""}`);setItems([]);}
-      else if(d.error){setError(d.error);setItems([]);}
-      else{setItems(d.items||[]);setCurPath(d.rel||"");setParentPath(d.parent!==undefined?d.parent:null);}
-    }catch(e){setError(e.message)}
-    finally{setLoading(false)}
-  },[]);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if(!canvas) return;
+    const ctx = canvas.getContext("2d");
 
-  const openFile=useCallback(async(rel)=>{
-    setLoading(true);setError(null);
-    try{
-      const r=await fetch(`${API}/api/second-brain/read?path=${encodeURIComponent(rel)}`);
-      const d=await r.json();
-      if(d.error){setError(d.error);}
-      else{setFileContent(d.content);setFileName(d.name);}
-    }catch(e){setError(e.message)}
-    finally{setLoading(false)}
-  },[]);
+    const resize = () => {
+      const p = canvas.parentElement;
+      if(!p) return;
+      canvas.width = p.clientWidth;
+      canvas.height = p.clientHeight;
+      initNodes();
+    };
 
-  useEffect(()=>{loadDir("")},[loadDir]);
+    const initNodes = () => {
+      const W = canvas.width, H = canvas.height;
+      const N = 28;
+      nodesRef.current = Array.from({length: N}, (_, i) => ({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        r: 2 + Math.random() * 2.5,
+        pulse: Math.random() * Math.PI * 2,
+      }));
+    };
 
-  const back=()=>{
-    if(fileContent!==null){setFileContent(null);return;}
-    if(parentPath!==null&&parentPath!==curPath)loadDir(parentPath);
+    resize();
+    const ro = new ResizeObserver(resize);
+    if(canvas.parentElement) ro.observe(canvas.parentElement);
+
+    const colorMap = {claude:"224,157,85", gemini:"184,141,232", kimi:"90,184,255"};
+    let lastT = performance.now();
+
+    const animate = (now) => {
+      rafRef.current = requestAnimationFrame(animate);
+      const dt = Math.min((now - lastT) / 1000, 0.05);
+      lastT = now;
+      tRef.current += dt;
+      const t = tRef.current;
+
+      const W = canvas.width, H = canvas.height;
+      const col = colorMap[active] || colorMap.claude;
+      const spd = animState === "responding" ? 1.8 : animState === "active" ? 1.2 : 0.7;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Update nodes
+      const nodes = nodesRef.current;
+      nodes.forEach(n => {
+        n.x += n.vx * spd;
+        n.y += n.vy * spd;
+        n.pulse += dt * 1.8 * spd;
+        if(n.x < 0 || n.x > W) n.vx *= -1;
+        if(n.y < 0 || n.y > H) n.vy *= -1;
+        n.x = Math.max(0, Math.min(W, n.x));
+        n.y = Math.max(0, Math.min(H, n.y));
+      });
+
+      // Draw connections
+      const maxDist = Math.min(W, H) * 0.55;
+      for(let i = 0; i < nodes.length; i++) {
+        for(let j = i+1; j < nodes.length; j++) {
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const d = Math.sqrt(dx*dx + dy*dy);
+          if(d < maxDist) {
+            const a = (1 - d/maxDist) * 0.18;
+            ctx.save();
+            ctx.strokeStyle = `rgba(${col},${a})`;
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
+
+      // Draw nodes
+      nodes.forEach(n => {
+        const pulse = 0.4 + Math.sin(n.pulse) * 0.35;
+        ctx.save();
+        ctx.shadowColor = `rgb(${col})`;
+        ctx.shadowBlur = 6 * pulse;
+        ctx.fillStyle = `rgba(${col},${pulse * 0.9})`;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r * (0.8 + Math.sin(n.pulse) * 0.2), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Center label
+      ctx.save();
+      ctx.fillStyle = `rgba(${col},0.15)`;
+      ctx.font = "700 11px 'Fira Code', monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("NEURAL · NETWORK", W/2, H/2);
+      ctx.restore();
+    };
+
+    animate(performance.now());
+    return () => { cancelAnimationFrame(rafRef.current); ro.disconnect(); };
+  }, [active, animState]);
+
+  return (
+    <canvas ref={canvasRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}/>
+  );
+}
+
+// ── Neural Panel ──────────────────────────────────────────────────────────────
+function NeuralPanel({active, animState}) {
+  return (
+    <div className="glass" style={{overflow:"hidden",height:180,position:"relative"}}>
+      <div className="phdr" style={{position:"relative",zIndex:1}}>
+        <span className="ptitle">Neural · Network</span>
+        <span className="muted mono t9">{active.toUpperCase()}</span>
+      </div>
+      <div style={{position:"relative",height:"calc(100% - 37px)"}}>
+        <NeuralAnimation active={active} animState={animState}/>
+      </div>
+    </div>
+  );
+}
+
+// ── Council Panel ─────────────────────────────────────────────────────────────
+function CouncilPanel({onLog}) {
+  const [open, setOpen] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [system, setSystem] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [results, setResults] = useState(null);
+  const [showSystem, setShowSystem] = useState(false);
+
+  const send = async () => {
+    if(!prompt.trim() || busy) return;
+    setBusy(true); setResults(null);
+    try {
+      const r = await fetch(`${API}/api/council`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({prompt: prompt.trim(), system: system.trim()})
+      });
+      const d = await r.json();
+      setResults(d.results || []);
+      onLog?.("Council session complete", "var(--yellow)");
+    } catch(e) {
+      setResults([{model:"error", error: e.message}]);
+    }
+    finally { setBusy(false); }
   };
 
-  return(
-    <div className="glass" style={{overflow:"hidden",display:"flex",flexDirection:"column",maxHeight:380}}>
-      <div className="phdr">
-        <span className="ptitle">Second · Brain</span>
-        <div className="f ac gap4">
-          {(fileContent!==null||(curPath&&curPath!==""))&&<button className="icon-btn" onClick={back}>← back</button>}
-          <button className="icon-btn" onClick={()=>loadDir("")}>⌂</button>
+  return (
+    <>
+      <div className="glass" style={{overflow:"hidden"}}>
+        <div className="phdr">
+          <span className="ptitle">AI · Council</span>
+          <span className="muted mono t9">3-way collaboration</span>
         </div>
-      </div>
-      <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-        {loading&&<div className="muted mono t10" style={{padding:"10px 12px"}}>Loading…</div>}
-        {error&&<div className="mono t10" style={{color:"#ff5a6a",padding:"8px 12px",lineHeight:1.6}}>{error}</div>}
-        {!loading&&!error&&fileContent!==null&&(
-          <div style={{flex:1,overflow:"hidden"}}>
-            <div className="phdr" style={{borderTop:"none",borderBottom:"1px solid var(--border)"}}>
-              <span className="mono t10" style={{color:"var(--kimi)"}}>{fileName}</span>
-            </div>
-            <div className="sb-content">{fileContent}</div>
+        <div style={{padding:"8px 10px"}}>
+          <div className="muted mono t10" style={{marginBottom:8,lineHeight:1.6}}>
+            Send a prompt to all 3 AIs simultaneously via OpenRouter. Compare and synthesize responses.
           </div>
-        )}
-        {!loading&&!error&&fileContent===null&&items!==null&&(
-          <div style={{flex:1,overflowY:"auto",padding:"5px 8px"}}>
-            {items.length===0&&<div className="muted mono t10" style={{padding:"6px 4px"}}>Empty folder</div>}
-            {items.map((item,i)=>(
-              <div key={i} className={`sb-item${item.is_dir?" dir":""}`}
-                onClick={()=>item.is_dir?loadDir(item.rel):item.readable?openFile(item.rel):null}
-                style={{cursor:item.is_dir||item.readable?"pointer":"default",opacity:item.is_dir||item.readable?1:0.45}}>
-                <span style={{fontSize:12,flexShrink:0}}>{item.is_dir?"📁":"📄"}</span>
-                <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</span>
-                {!item.is_dir&&<span className="muted mono t9">{(item.size/1024).toFixed(1)}k</span>}
+          <div className="f ac gap4" style={{marginBottom:8}}>
+            {["claude","gemini","kimi"].map(m=>(
+              <div key={m} className="f ac gap4" style={{padding:"3px 8px",borderRadius:4,background:`${CLR[m]}18`,border:`1px solid ${CLR[m]}44`}}>
+                <div className="ai-dot" style={{background:CLR[m],color:CLR[m]}}/>
+                <span style={{fontFamily:"var(--f-mono)",fontSize:10,color:CLR[m]}}>{m}</span>
               </div>
             ))}
           </div>
-        )}
+          <button className="btn" style={{width:"100%",borderColor:"var(--yellow)",color:"var(--yellow)",background:"rgba(240,192,64,0.08)"}}
+            onClick={()=>setOpen(true)}>
+            ⚡ Open Council
+          </button>
+        </div>
       </div>
-    </div>
+
+      {open && (
+        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setOpen(false)}>
+          <div className="modal" style={{width:"min(900px,95vw)",maxHeight:"85vh",overflowY:"auto"}}>
+            <div className="modal-title" style={{color:"var(--yellow)"}}>⚡ AI Council — 3-Way Collaboration</div>
+
+            <div style={{marginBottom:8}}>
+              <div className="f ac jb" style={{marginBottom:4}}>
+                <span className="muted mono t10">Prompt</span>
+                <button className="icon-btn" onClick={()=>setShowSystem(s=>!s)}>
+                  {showSystem?"Hide System":"+ System"}
+                </button>
+              </div>
+              {showSystem && (
+                <div className="neuro-in" style={{marginBottom:6}}>
+                  <textarea className="opt-ta" style={{minHeight:50}} placeholder="System prompt (optional)…"
+                    value={system} onChange={e=>setSystem(e.target.value)}/>
+                </div>
+              )}
+              <div className="neuro-in" style={{marginBottom:8}}>
+                <textarea className="opt-ta" style={{minHeight:100}} placeholder="What should all 3 AIs work on together? (Ctrl+Enter to send)"
+                  value={prompt} onChange={e=>setPrompt(e.target.value)}
+                  onKeyDown={e=>{if(e.key==="Enter"&&e.ctrlKey)send()}}/>
+              </div>
+              <div className="f gap6" style={{justifyContent:"flex-end"}}>
+                <button className="btn" onClick={()=>setOpen(false)}>Close</button>
+                <button className="btn" style={{borderColor:"var(--yellow)",color:"var(--yellow)",background:"rgba(240,192,64,0.08)"}}
+                  disabled={!prompt.trim()||busy} onClick={send}>
+                  {busy?"⏳ Querying 3 AIs…":"⚡ Send to Council"}
+                </button>
+              </div>
+            </div>
+
+            {busy && (
+              <div style={{textAlign:"center",padding:"20px 0",fontFamily:"var(--f-mono)",fontSize:12,color:"var(--txt-muted)"}}>
+                <div className="spin" style={{display:"inline-block",marginRight:8}}>◐</div>
+                Querying Claude · Gemini · Kimi in parallel…
+              </div>
+            )}
+
+            {results && (
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:12}}>
+                {results.map((r,i)=>{
+                  const model = r.model || ["claude","gemini","kimi"][i] || "unknown";
+                  const col = CLR[model] || "var(--txt)";
+                  return (
+                    <div key={i} style={{background:"#04070f",border:`1px solid ${col}33`,borderRadius:8,overflow:"hidden"}}>
+                      <div style={{padding:"6px 10px",borderBottom:`1px solid ${col}22`,fontFamily:"var(--f-mono)",fontSize:10,color:col,textTransform:"uppercase",letterSpacing:"0.1em"}}>
+                        ● {model} {r.tokens?`· ${r.tokens} tok`:""}
+                      </div>
+                      <div style={{padding:"8px 10px",fontFamily:"var(--f-mono)",fontSize:11,color:"var(--txt-dim)",lineHeight:1.65,whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:320,overflowY:"auto"}}>
+                        {r.error ? <span style={{color:"#ff5a6a"}}>Error: {r.error}</span> : r.response}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -991,9 +1170,9 @@ function App(){
   },[]);
 
   useEffect(()=>{
-    addLog("V.A.U.L.T. MARK XXI online","var(--claude)");
-    addLog("Holo Animation initialized","var(--gemini)");
-    addLog("Second Brain panel loaded","var(--kimi)");
+    addLog("V.A.U.L.T. MARK XXII online","var(--claude)");
+    addLog("Council Mode initialized — OpenRouter ready","var(--yellow)");
+    addLog("Neural animation active","var(--gemini)");
   },[]);
 
   const shutdown=async()=>{
@@ -1010,7 +1189,7 @@ function App(){
         <div className="s-dot"/>
         <div>
           <div className="logo-mark">V.A.U.L.T.</div>
-          <div className="logo-sub">MARK XXI · Holo OS</div>
+          <div className="logo-sub">Virtual Assistant for Universal &amp; Local Tasks</div>
         </div>
         <div style={{flex:1}}/>
         <div className="f ac gap6">
@@ -1020,7 +1199,8 @@ function App(){
           <span className="muted mono t9" style={{marginLeft:4}}>3 AI Terminals</span>
         </div>
         <span className="up-badge" style={{color:"#3ddc97",marginRight:4}}>↑ {metrics.uptime||"00:00"}</span>
-        <span className="muted mono t9" style={{letterSpacing:"0.1em",marginRight:6}}>
+        <LiveClock/>
+        <span className="muted mono t9" style={{letterSpacing:"0.1em",marginLeft:6,marginRight:6}}>
           <span style={{color:CLR[active],textShadow:`0 0 8px ${CLR[active]}`}}>● {active.toUpperCase()}</span>
         </span>
         <button className="icon-btn" onClick={shutdown} style={{color:"#ff5a6a",borderColor:"rgba(255,90,106,0.3)"}} title="Shutdown backend">⏻</button>
@@ -1041,7 +1221,8 @@ function App(){
 
         <aside className="panel-r">
           <PromptOptimizer onLog={addLog}/>
-          <SecondBrain/>
+          <NeuralPanel active={active} animState={animState}/>
+          <CouncilPanel onLog={addLog}/>
           <ActivityLog entries={logs}/>
           <FileDropzone onLog={addLog} active={active}/>
         </aside>
