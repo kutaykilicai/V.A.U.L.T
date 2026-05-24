@@ -7,10 +7,12 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import time
 import webbrowser
 from pathlib import Path
+from typing import Optional
 
 import httpx
 import psutil
@@ -62,10 +64,10 @@ BANNER = r"""
    |_| |_| |_| |_| |_|  |_|     |_|  |_|
 
   Virtual Assistant for Universal & Local Tasks
-  MARK XXI — Holo Animation + Second Brain + Readability Fix
+  MARK XXII — Council Mode + Bug Fixes
 """
 
-app = FastAPI(title="V.A.U.L.T. MARK XXI")
+app = FastAPI(title="V.A.U.L.T. MARK XXII")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -173,7 +175,7 @@ def _gpu() -> float:
         pass
     return 0.0
 
-def _temp() -> float:
+def _temp() -> Optional[float]:
     try:
         temps = psutil.sensors_temperatures()
         if temps:
@@ -182,7 +184,7 @@ def _temp() -> float:
                     return float(temps[k][0].current)
     except Exception:
         pass
-    return 0.0
+    return None
 
 def _net_kb() -> float:
     global _net_prev_bytes, _net_prev_time
@@ -455,7 +457,7 @@ async def optimize_prompt(req: Request) -> JSONResponse:
         f"Original prompt:\n{prompt}"
     )
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         def _run():
             return subprocess.run(
@@ -503,7 +505,7 @@ async def optimize_context(req: Request) -> JSONResponse:
         f"Terminal session:\n{history[:4000]}"
     )
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         def _run():
             return subprocess.run(
@@ -665,9 +667,76 @@ async def fetch_web(url: str) -> JSONResponse:
 async def shutdown_server() -> JSONResponse:
     async def _stop():
         await asyncio.sleep(0.4)
-        os._exit(0)
+        _cleanup_sessions()
+        os.kill(os.getpid(), signal.SIGTERM)
     asyncio.create_task(_stop())
     return JSONResponse({"ok": True})
+
+
+# ── Council Mode (OpenRouter) ─────────────────────────────────────────────────
+
+_OR_KEY_FILE = MARK_DIR / "openrouter_key.txt"
+OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "")
+if not OPENROUTER_KEY and _OR_KEY_FILE.exists():
+    try:
+        OPENROUTER_KEY = _OR_KEY_FILE.read_text(encoding="utf-8").strip()
+    except Exception:
+        pass
+
+COUNCIL_MODELS = {
+    "claude": "anthropic/claude-3.5-sonnet",
+    "gemini": "google/gemini-flash-1.5",
+    "kimi":   "moonshotai/moonshot-v1-8k",
+}
+
+
+@app.post("/api/council")
+async def council_query(req: Request) -> JSONResponse:
+    body   = await req.json()
+    prompt = body.get("prompt", "").strip()
+    system = body.get("system", "").strip()
+
+    if not prompt:
+        return JSONResponse({"error": "empty_prompt"}, status_code=400)
+
+    async def _query_model(name: str, model_id: str) -> dict:
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                messages = []
+                if system:
+                    messages.append({"role": "system", "content": system})
+                messages.append({"role": "user", "content": prompt})
+
+                r = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {OPENROUTER_KEY}",
+                        "HTTP-Referer": "http://localhost:8765",
+                        "X-Title": "V.A.U.L.T.",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": model_id,
+                        "messages": messages,
+                        "max_tokens": 1000,
+                    },
+                )
+                data = r.json()
+                if r.status_code != 200:
+                    err = data.get("error", {})
+                    err_msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+                    return {"model": name, "response": None, "tokens": 0, "error": err_msg}
+
+                choice   = data["choices"][0]["message"]["content"]
+                usage    = data.get("usage", {})
+                tokens   = usage.get("total_tokens", usage.get("completion_tokens", 0))
+                return {"model": name, "response": choice, "tokens": tokens}
+        except Exception as e:
+            return {"model": name, "response": None, "tokens": 0, "error": str(e)[:300]}
+
+    tasks   = [_query_model(name, model_id) for name, model_id in COUNCIL_MODELS.items()]
+    results = await asyncio.gather(*tasks)
+    return JSONResponse({"results": list(results)})
 
 
 # ── WebSocket: sys metrics ────────────────────────────────────────────────────
@@ -710,7 +779,7 @@ async def ws_pty(ws: WebSocket, model: str) -> None:
         return
 
     stop = asyncio.Event()
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
 
     async def read_loop() -> None:
         while not stop.is_set():
@@ -737,12 +806,13 @@ async def ws_pty(ws: WebSocket, model: str) -> None:
                 pass
             if session.is_alive():
                 session.write(raw)
-                if model == "claude" and "\r" in raw and raw.strip():
-                    _claude_usage["session_messages"] = min(
-                        _claude_usage["session_messages"] + 1, CLAUDE_SESSION_LIMIT
-                    )
-                    _claude_usage["weekly_messages"] += 1
-                    _save_usage()
+                # Gemini inline usage tracking (no frontend increment call for gemini)
+                if model == "gemini" and "\r" in raw and raw.strip():
+                    _gemini_usage["daily_calls"]  += 1
+                    _gemini_usage["weekly_calls"] += 1
+                    _save_gemini_usage()
+                # NOTE: Claude usage is NOT tracked here — frontend calls
+                # /api/claude-usage/increment explicitly to avoid double-counting.
             else:
                 session = await _get_session(model)
     except WebSocketDisconnect:
@@ -754,6 +824,9 @@ async def ws_pty(ws: WebSocket, model: str) -> None:
             await reader
         except asyncio.CancelledError:
             pass
+        # Sessions are kept alive for reconnects — no close() here.
+        import logging
+        logging.debug("[V.A.U.L.T.] ws_pty disconnected for model=%s; session kept alive.", model)
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

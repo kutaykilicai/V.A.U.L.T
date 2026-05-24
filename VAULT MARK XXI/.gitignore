@@ -1,0 +1,14 @@
+# Secrets
+openrouter_key.txt
+kimi_key.txt
+
+# Runtime files
+shared_context.txt
+claude_usage.json
+gemini_usage.json
+__pycache__/
+*.pyc
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
