@@ -4,3 +4,26 @@ __pycache__/
 uploads/
 *.egg-info/
 .env
+.env*
+
+# Sensitive API keys
+kimi_key.txt
+*_key.txt
+secrets.json
+
+# Runtime data
+claude_usage.json
+gemini_usage.json
+shared_context.txt
+
+# Archives & handoff zips
+*.zip
+*-handoff.zip
+handoff-extracted/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
