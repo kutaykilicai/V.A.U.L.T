@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V.A.U.L.T. MARK XXIII</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#04060a;
+  --panel:rgba(7,10,18,0.82);
+  --border:rgba(255,255,255,0.09);
+  --border-hi:rgba(255,255,255,0.16);
+  --txt:#e2eaf8;
+  --txt-dim:#9aabcc;
+  --txt-muted:#6a7d9f;
+  --claude:#e09d55;
+  --claude-lo:rgba(224,157,85,0.13);
+  --claude-glow:rgba(224,157,85,0.32);
+  --gemini:#b88de8;
+  --gemini-lo:rgba(184,141,232,0.13);
+  --gemini-glow:rgba(184,141,232,0.32);
+  --kimi:#5ab8ff;
+  --kimi-lo:rgba(90,184,255,0.13);
+  --kimi-glow:rgba(90,184,255,0.32);
+  --green:#3ddc97;
+  --red:#ff5a6a;
+  --yellow:#f0c040;
+  --r:12px;--rs:8px;--rx:5px;
+  --f-ui:'Inter',system-ui,sans-serif;
+  --f-mono:'Fira Code','Cascadia Code',monospace;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:var(--f-ui);font-size:14px;line-height:1.55}
+
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.018) 3px,rgba(0,0,0,0.018) 4px);pointer-events:none;z-index:9999}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+
+.glass{background:var(--panel);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);border:1px solid var(--border);border-radius:var(--r)}
+.neuro{background:#060a14;box-shadow:4px 4px 14px rgba(0,0,0,0.6),-2px -2px 6px rgba(255,255,255,0.02);border-radius:var(--rs);border:1px solid rgba(255,255,255,0.05)}
+.neuro-in{background:#030609;box-shadow:inset 3px 3px 8px rgba(0,0,0,0.8),inset -1px -1px 3px rgba(255,255,255,0.02);border-radius:var(--rx);border:1px solid rgba(255,255,255,0.04)}
+
+#root{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.app-header{display:flex;align-items:center;gap:10px;padding:0 14px;height:48px;background:rgba(3,5,9,0.94);border-bottom:1px solid var(--border);flex-shrink:0}
+.app-main{display:flex;flex:1;overflow:hidden;gap:7px;padding:7px}
+.panel-l{width:272px;flex-shrink:0;display:flex;flex-direction:column;gap:7px;overflow-y:auto;overflow-x:hidden}
+.panel-c{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.panel-r{width:300px;flex-shrink:0;display:flex;flex-direction:column;gap:7px;overflow-y:auto;overflow-x:hidden}
+
+.phdr{display:flex;align-items:center;justify-content:space-between;padding:8px 13px;border-bottom:1px solid var(--border);flex-shrink:0}
+.ptitle{font-family:var(--f-mono);font-size:10.5px;font-weight:600;letter-spacing:0.13em;text-transform:uppercase;color:var(--txt-dim)}
+
+.logo-mark{font-family:var(--f-mono);font-size:15px;font-weight:700;letter-spacing:0.07em;color:var(--claude);text-shadow:0 0 18px var(--claude-glow)}
+.logo-sub{font-family:var(--f-mono);font-size:9.5px;color:var(--txt-muted);letter-spacing:0.06em}
+
+.prog-track{background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;position:relative}
+.prog-fill{height:100%;border-radius:3px;transition:width 0.6s ease;position:relative}
+.prog-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:18px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.35))}
+
+.uc{padding:10px 12px;border-radius:var(--rs);border:1px solid rgba(255,255,255,0.06);position:relative;overflow:hidden;margin-bottom:6px;background:#060a14;box-shadow:3px 3px 10px rgba(0,0,0,0.55),-1px -1px 4px rgba(255,255,255,0.015)}
+.uc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;border-radius:2px 0 0 2px}
+.uc.cl::before{background:var(--claude);box-shadow:0 0 10px var(--claude)}
+.uc.gm::before{background:var(--gemini);box-shadow:0 0 10px var(--gemini)}
+.uc.km::before{background:var(--kimi);box-shadow:0 0 10px var(--kimi)}
+.uc-name{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px}
+.uc.cl .uc-name{color:var(--claude)}
+.uc.gm .uc-name{color:var(--gemini)}
+.uc.km .uc-name{color:var(--kimi)}
+.uc-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.uc-lbl{font-size:11px;color:var(--txt-dim)}
+.uc-val{font-family:var(--f-mono);font-size:11px;color:var(--txt)}
+.uc-reset{font-family:var(--f-mono);font-size:10px;color:var(--txt-muted);margin:3px 0 7px}
+.balance-big{font-family:var(--f-mono);font-size:24px;font-weight:700;text-align:center;padding:7px 0 3px}
+.balance-sub{font-size:10.5px;color:var(--txt-muted);text-align:center}
+
+.br-row{display:flex;align-items:center;gap:7px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.br-row:last-child{border-bottom:none}
+.br-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;box-shadow:0 0 5px currentColor}
+.br-name{font-family:var(--f-mono);font-size:11px;font-weight:600;width:50px;flex-shrink:0;letter-spacing:0.05em}
+.br-prog{flex:1}
+.br-cnt{font-family:var(--f-mono);font-size:10px;color:var(--txt-muted);width:28px;text-align:right;flex-shrink:0}
+.br-btn{font-family:var(--f-mono);font-size:10px;padding:3px 9px;border-radius:4px;cursor:pointer;transition:all 0.18s;flex-shrink:0}
+.br-btn:disabled{opacity:0.3;cursor:not-allowed}
+
+.m-row{display:flex;align-items:center;gap:6px;padding:3px 0}
+.m-lbl{font-family:var(--f-mono);font-size:10px;color:var(--txt-muted);width:32px;flex-shrink:0}
+.m-bar{flex:1}
+.m-val{font-family:var(--f-mono);font-size:10px;width:44px;text-align:right;flex-shrink:0;color:var(--txt-dim)}
+
+.term-tabs{display:flex;align-items:center;gap:4px;padding:5px 9px;border-bottom:1px solid var(--border);background:rgba(3,5,9,0.5);flex-shrink:0}
+.t-tab{font-family:var(--f-mono);font-size:12px;padding:5px 14px;border-radius:var(--rx);border:1px solid transparent;cursor:pointer;transition:all 0.18s;color:var(--txt-dim);background:transparent}
+.t-tab:hover{color:var(--txt);background:rgba(255,255,255,0.05)}
+.t-tab.active{border-color:var(--border-hi)}
+.t-tab.active.cl{color:var(--claude);border-color:var(--claude);background:var(--claude-lo);text-shadow:0 0 10px var(--claude-glow)}
+.t-tab.active.gm{color:var(--gemini);border-color:var(--gemini);background:var(--gemini-lo);text-shadow:0 0 10px var(--gemini-glow)}
+.t-tab.active.km{color:var(--kimi);border-color:var(--kimi);background:var(--kimi-lo);text-shadow:0 0 10px var(--kimi-glow)}
+.bc-btn{margin-left:auto;font-family:var(--f-mono);font-size:10.5px;padding:4px 11px;border-radius:var(--rx);border:1px solid rgba(255,255,255,0.09);cursor:pointer;background:transparent;color:var(--txt-dim);transition:all 0.18s}
+.bc-btn:hover{color:var(--txt);border-color:rgba(255,255,255,0.18)}
+.bc-btn.on{color:var(--yellow);border-color:var(--yellow);background:rgba(240,192,64,0.08);box-shadow:0 0 8px rgba(240,192,64,0.2)}
+.term-body{flex:1;position:relative;overflow:hidden}
+.xw{position:absolute;inset:0;padding:5px;display:none;flex-direction:column;z-index:1}
+.xw.vis{display:flex}
+
+.opt-ta{width:100%;min-height:82px;max-height:130px;resize:vertical;padding:8px 10px;font-family:var(--f-mono);font-size:12px;color:var(--txt);outline:none;background:transparent;border:none;line-height:1.55}
+.opt-ta::placeholder{color:var(--txt-muted)}
+.opt-out{padding:8px 10px;font-family:var(--f-mono);font-size:12px;color:var(--txt);line-height:1.6;white-space:pre-wrap;word-break:break-word;min-height:58px;max-height:140px;overflow-y:auto}
+
+.log-e{display:flex;align-items:flex-start;gap:5px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px}
+.log-t{font-family:var(--f-mono);font-size:10px;color:var(--txt-muted);flex-shrink:0;padding-top:1px}
+.log-d{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.log-m{color:var(--txt-dim);flex:1}
+
+.dz{border:1px dashed rgba(255,255,255,0.12);border-radius:var(--rs);padding:12px;text-align:center;cursor:pointer;transition:all 0.18s;color:var(--txt-muted);font-size:12px}
+.dz:hover,.dz.ov{border-color:var(--claude);color:var(--claude);background:var(--claude-lo)}
+.dz-icon{font-size:17px;margin-bottom:3px;display:block}
+
+.btn{font-family:var(--f-mono);font-size:12px;padding:6px 14px;border-radius:var(--rx);border:1px solid rgba(255,255,255,0.09);cursor:pointer;background:rgba(255,255,255,0.05);color:var(--txt);transition:all 0.15s;letter-spacing:0.04em}
+.btn:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.16)}
+.btn:active{transform:scale(0.98)}
+.btn:disabled{opacity:0.38;cursor:not-allowed}
+.btn-cl{background:var(--claude-lo);border-color:var(--claude);color:var(--claude)}
+.btn-cl:hover{background:rgba(224,157,85,0.22);box-shadow:0 0 10px var(--claude-glow)}
+.btn-gm{background:var(--gemini-lo);border-color:var(--gemini);color:var(--gemini)}
+.btn-gm:hover{background:rgba(184,141,232,0.22);box-shadow:0 0 10px var(--gemini-glow)}
+.btn-sm{font-size:10px;padding:3px 9px}
+.icon-btn{font-family:var(--f-mono);font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--txt-dim);cursor:pointer;transition:all 0.15s}
+.icon-btn:hover{color:var(--txt);border-color:var(--border-hi)}
+
+.s-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2.5s ease-in-out infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+.up-badge{font-family:var(--f-mono);font-size:10px;color:var(--txt-dim);padding:2px 9px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:20px}
+.ai-dot{width:7px;height:7px;border-radius:50%;box-shadow:0 0 6px currentColor}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);z-index:1000;display:flex;align-items:center;justify-content:center;animation:fi 0.18s ease}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.modal{background:#070b14;border:1px solid var(--border-hi);border-radius:var(--r);padding:22px;width:480px;max-width:90vw;box-shadow:0 22px 65px rgba(0,0,0,0.88)}
+.modal-title{font-family:var(--f-mono);font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px}
+
+.f{display:flex}.f1{flex:1}.ac{align-items:center}.jb{justify-content:space-between}
+.gap4{gap:4px}.gap6{gap:6px}.gap8{gap:8px}
+.mb4{margin-bottom:4px}.mb6{margin-bottom:6px}.mb8{margin-bottom:8px}
+.p10{padding:10px}.p12{padding:12px}
+.mono{font-family:var(--f-mono)}
+.t11{font-size:11px}.t10{font-size:10px}.t9{font-size:9.5px}
+.dim{color:var(--txt-dim)}.muted{color:var(--txt-muted)}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ki{width:100%;padding:6px 9px;font-family:var(--f-mono);font-size:12px;color:var(--txt);outline:none;background:transparent;border:none}
+.ki::placeholder{color:var(--txt-muted)}
+.nline{height:1px;background:linear-gradient(90deg,transparent,var(--border-hi),transparent);margin:2px 0}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback,useMemo}=React;
+const API="http://localhost:8765";
+const WS_BASE="ws://localhost:8765";
+const MODELS=["claude","gemini","kimi"];
+const CLR={claude:"#e09d55",gemini:"#b88de8",kimi:"#5ab8ff"};
+const CLR_RGB={
+  claude:{r:224,g:157,b:85},
+  gemini:{r:184,g:141,b:232},
+  kimi:{r:90,g:184,b:255},
+};
+const BRIDGE_THRESHOLD=10;
+
+function fmtSecs(s){
+  s=Math.floor(s||0);if(s<=0)return"now";
+  const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60);
+  if(d>0)return`${d}d ${h}hr ${m}m`;if(h>0)return`${h}hr ${m}m`;return`${m}m`;
+}
+function fmtKb(kb){return kb<1024?`${kb.toFixed(1)} KB/s`:`${(kb/1024).toFixed(1)} MB/s`}
+function nowTs(){return new Date().toLocaleTimeString("en-US",{hour12:false,hour:"2-digit",minute:"2-digit",second:"2-digit"})}
+function stripAnsi(s){
+  return(s||"").replace(/\x1B\[[0-9;]*[a-zA-Z]/g,"").replace(/\x1B\][^\x07]*\x07/g,"")
+    .replace(/\x1B[@-Z\\-_]/g,"").replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+}
+
+// ── Live Clock ─────────────────────────────────────────────────────────────────
+function LiveClock() {
+  const [t, setT] = useState(() => new Date().toLocaleTimeString("tr-TR", {hour12:false}));
+  useEffect(() => {
+    const iv = setInterval(() => setT(new Date().toLocaleTimeString("tr-TR", {hour12:false})), 1000);
+    return () => clearInterval(iv);
+  }, []);
+  return <span className="up-badge" style={{color:"var(--txt-dim)",fontFamily:"var(--f-mono)",fontSize:"11px"}}>{t}</span>;
+}
+
+// ── VAULT Holographic Animation ────────────────────────────────────────────────
+function VaultHoloAnimation({activeModel,animState}){
+  const canvasRef=useRef(null);
+  const rafRef=useRef(null);
+  const tRef=useRef(0);
+  const prevModelRef=useRef(activeModel);
+  const transRef=useRef(1);
+
+  useEffect(()=>{
+    const canvas=canvasRef.current;
+    if(!canvas)return;
+    const ctx=canvas.getContext("2d");
+
+    const resize=()=>{
+      const p=canvas.parentElement;
+      if(!p)return;
+      canvas.width=p.clientWidth;
+      canvas.height=p.clientHeight;
+    };
+    resize();
+    const ro=new ResizeObserver(resize);
+    if(canvas.parentElement)ro.observe(canvas.parentElement);
+
+    const lerp=(a,b,t)=>a+(b-a)*t;
+    const lerpC=(c1,c2,t)=>({
+      r:Math.round(lerp(c1.r,c2.r,t)),
+      g:Math.round(lerp(c1.g,c2.g,t)),
+      b:Math.round(lerp(c1.b,c2.b,t)),
+    });
+
+    let lastT=performance.now();
+
+    const drawHexPath=(ctx,cx,cy,r,rot)=>{
+      ctx.beginPath();
+      for(let i=0;i<6;i++){
+        const a=(i*Math.PI/3)+rot;
+        const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);
+        i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }
+      ctx.closePath();
+    };
+
+    const drawArcSeg=(ctx,cx,cy,r,a0,a1,rot)=>{
+      ctx.save();ctx.translate(cx,cy);ctx.rotate(rot);
+      ctx.beginPath();ctx.arc(0,0,r,a0,a1);ctx.stroke();
+      ctx.restore();
+    };
+
+    const animate=(now)=>{
+      rafRef.current=requestAnimationFrame(animate);
+      const dt=Math.min((now-lastT)/1000,0.05);
+      lastT=now;
+      tRef.current+=dt;
+      const t=tRef.current;
+
+      if(prevModelRef.current!==activeModel){
+        prevModelRef.current=activeModel;
+        transRef.current=0;
+      }
+      transRef.current=Math.min(transRef.current+dt*2.5,1);
+
+      const c1=CLR_RGB[prevModelRef.current]||CLR_RGB.claude;
+      const c2=CLR_RGB[activeModel]||CLR_RGB.claude;
+      const col=lerpC(c1,c2,transRef.current);
+      const rgba=(a)=>`rgba(${col.r},${col.g},${col.b},${a})`;
+
+      const spd=animState==="responding"?2.8:animState==="active"?1.6:0.65;
+      const base=animState==="responding"?0.88:animState==="active"?0.68:0.48;
+
+      const W=canvas.width,H=canvas.height;
+      const cx=W/2,cy=H/2;
+      ctx.clearRect(0,0,W,H);
+
+      // 1. Faint grid
+      ctx.save();
+      ctx.strokeStyle=rgba(0.035*base/0.32);
+      ctx.lineWidth=0.5;
+      const gs=50;
+      for(let x=0;x<W;x+=gs){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+      for(let y=0;y<H;y+=gs){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+      ctx.restore();
+
+      // 2. Outer hex rings
+      for(let ring=0;ring<4;ring++){
+        const r=70+ring*65;
+        const rot=t*spd*(ring%2===0?0.22:-0.18);
+        const a=Math.max(0,(0.18-ring*0.035)*base/0.32);
+        ctx.save();
+        ctx.strokeStyle=rgba(a);ctx.lineWidth=1;
+        drawHexPath(ctx,cx,cy,r,rot);ctx.stroke();
+        // corner nodes
+        for(let i=0;i<6;i++){
+          const ang=(i*Math.PI/3)+rot;
+          ctx.fillStyle=rgba(Math.min(1,a*1.8));
+          ctx.beginPath();ctx.arc(cx+r*Math.cos(ang),cy+r*Math.sin(ang),2,0,Math.PI*2);ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // 3. Pulsing inner circles
+      for(let i=1;i<=3;i++){
+        const pulse=Math.sin(t*spd*1.8+i*Math.PI/2.5);
+        const r=28+i*18+pulse*6;
+        ctx.save();
+        ctx.strokeStyle=rgba(Math.min(1,(0.22+pulse*0.07)*base/0.32));
+        ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+        ctx.restore();
+      }
+
+      // 4. Arc segments (rotating partial arcs)
+      const arcRot=t*spd*0.45;
+      [
+        {r:130,a0:0,a1:Math.PI/2.5,rot:arcRot},
+        {r:130,a0:Math.PI,a1:Math.PI*1.4,rot:arcRot},
+        {r:190,a0:Math.PI/5,a1:Math.PI*0.9,rot:-arcRot*0.65},
+        {r:190,a0:Math.PI*1.2,a1:Math.PI*1.85,rot:-arcRot*0.65},
+        {r:260,a0:0,a1:Math.PI/3,rot:arcRot*0.4},
+        {r:260,a0:Math.PI,a1:Math.PI*4/3,rot:arcRot*0.4},
+      ].forEach(({r,a0,a1,rot})=>{
+        ctx.save();ctx.strokeStyle=rgba(Math.min(1,0.28*base/0.32));ctx.lineWidth=1.5;
+        drawArcSeg(ctx,cx,cy,r,a0,a1,rot);ctx.restore();
+      });
+
+      // 5. Model-specific effect
+      if(activeModel==="kimi"||prevModelRef.current==="kimi"){
+        // Vertical data streams (matrix-style)
+        const n=Math.floor(W/60);
+        for(let i=0;i<n;i++){
+          const x=(i/(n-1||1))*W;
+          const streamH=90+Math.sin(t*2.5+i*0.9)*50;
+          const sy=((t*spd*90+i*70)%(H+streamH))-streamH;
+          const g=ctx.createLinearGradient(x,sy,x,sy+streamH);
+          g.addColorStop(0,"transparent");
+          g.addColorStop(0.5,rgba(Math.min(1,0.22*base/0.32)));
+          g.addColorStop(1,"transparent");
+          ctx.save();ctx.strokeStyle=g;ctx.lineWidth=1;
+          ctx.setLineDash([3,9]);ctx.beginPath();ctx.moveTo(x,sy);ctx.lineTo(x,sy+streamH);ctx.stroke();
+          ctx.restore();
+        }
+      } else if(activeModel==="gemini"||prevModelRef.current==="gemini"){
+        // Spiral energy rings
+        for(let s=0;s<3;s++){
+          const r=50+s*55+Math.sin(t*spd*1.2+s)*15;
+          const phase=t*spd*(0.5+s*0.2);
+          ctx.save();
+          ctx.strokeStyle=rgba(Math.min(1,(0.12+s*0.03)*base/0.32));
+          ctx.lineWidth=1.5;
+          ctx.setLineDash([Math.PI*r/6,Math.PI*r/6]);
+          ctx.lineDashOffset=-phase*r*0.5;
+          ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+          ctx.restore();
+        }
+      } else {
+        // Claude: corner hex brackets
+        const sz=32;const m=30;
+        [[m,m,0],[W-m,m,1],[W-m,H-m,2],[m,H-m,3]].forEach(([x,y,q])=>{
+          const dx=q===1||q===2?-sz:sz;
+          const dy=q===2||q===3?-sz:sz;
+          ctx.save();ctx.strokeStyle=rgba(Math.min(1,0.3*base/0.32));ctx.lineWidth=1.5;
+          ctx.beginPath();ctx.moveTo(x+dx*0.6,y);ctx.lineTo(x,y);ctx.lineTo(x,y+dy*0.6);ctx.stroke();
+          ctx.restore();
+        });
+      }
+
+      // 6. Scan beam (active/responding)
+      if(animState!=="idle"){
+        const beamY=((t*spd*75)%H);
+        const g=ctx.createLinearGradient(0,beamY-14,0,beamY+14);
+        g.addColorStop(0,"transparent");
+        g.addColorStop(0.5,rgba(Math.min(1,0.18*base/0.32)));
+        g.addColorStop(1,"transparent");
+        ctx.save();ctx.fillStyle=g;ctx.fillRect(0,beamY-14,W,28);ctx.restore();
+
+        if(animState==="responding"){
+          const bx=((t*spd*120+30)%W);
+          const gx=ctx.createLinearGradient(bx-12,0,bx+12,0);
+          gx.addColorStop(0,"transparent");
+          gx.addColorStop(0.5,rgba(0.12));
+          gx.addColorStop(1,"transparent");
+          ctx.save();ctx.fillStyle=gx;ctx.fillRect(bx-12,0,24,H);ctx.restore();
+        }
+      }
+
+      // 7. VAULT text (center)
+      const glow=(0.55+Math.sin(t*spd*1.4)*0.18)*base/0.32;
+      const fs=Math.min(W*0.16,110);
+      ctx.save();
+      ctx.shadowColor=`rgb(${col.r},${col.g},${col.b})`;
+      ctx.shadowBlur=25*Math.min(1,glow);
+      ctx.fillStyle=rgba(Math.min(1,glow*0.9));
+      ctx.font=`700 ${fs}px 'Fira Code', monospace`;
+      ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText("V.A.U.L.T.",cx,cy-22);
+      ctx.restore();
+
+      // Subtitle — MARK XXIII
+      const sub=animState==="responding"?"PROCESSING . . .":animState==="active"?"● ACTIVE":`MARK XXIII · ${activeModel.toUpperCase()}`;
+      ctx.save();
+      ctx.fillStyle=rgba(Math.min(1,glow*0.55));
+      ctx.font=`${Math.min(W*0.02,13)}px 'Fira Code', monospace`;
+      ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText(sub,cx,cy+fs*0.4+8);
+      ctx.restore();
+
+      // 8. Corner HUD decorators
+      const hud=24;const hm=16;
+      [[hm,hm,1,1],[W-hm,hm,-1,1],[W-hm,H-hm,-1,-1],[hm,H-hm,1,-1]].forEach(([x,y,sx,sy])=>{
+        ctx.save();ctx.strokeStyle=rgba(Math.min(1,0.35*base/0.32));ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(x+sx*hud*0.55,y);ctx.lineTo(x,y);ctx.lineTo(x,y+sy*hud*0.55);ctx.stroke();
+        ctx.restore();
+      });
+    };
+
+    animate(performance.now());
+    return()=>{cancelAnimationFrame(rafRef.current);ro.disconnect()};
+  },[activeModel,animState]);
+
+  return(
+    <canvas ref={canvasRef} style={{
+      position:"absolute",inset:0,width:"100%",height:"100%",
+      pointerEvents:"none",zIndex:0,
+    }}/>
+  );
+}
+
+// ── ProgressBar ───────────────────────────────────────────────────────────────
+function ProgressBar({pct=0,color="#e09d55",h=4}){
+  const w=Math.min(100,Math.max(0,pct));
+  const c=w>85?"#ff5a6a":color;
+  return(
+    <div className="prog-track" style={{height:h}}>
+      <div className="prog-fill" style={{width:`${w}%`,height:h,background:`linear-gradient(90deg,${c}88,${c})`,boxShadow:`0 0 7px ${c}55`}}/>
+    </div>
+  );
+}
+
+// ── Claude Card ───────────────────────────────────────────────────────────────
+function ClaudeCard({u}) {
+  if(!u) return <div className="uc cl"><div className="uc-name">Claude · Code</div><div className="muted mono t10">Loading…</div></div>;
+
+  const sessPercent = u.session_percentage || 0;
+  const weekPercent = u.weekly_percentage || 0;
+  const sessColor = sessPercent > 85 ? "#ff5a6a" : sessPercent > 60 ? "#f0c040" : "var(--claude)";
+  const weekColor = weekPercent > 85 ? "#ff5a6a" : weekPercent > 60 ? "#f0c040" : "var(--claude)";
+
+  return (
+    <div className="uc cl">
+      <div className="f ac jb mb4">
+        <div className="uc-name" style={{marginBottom:0}}>Claude · Code</div>
+        <div style={{fontFamily:"var(--f-mono)",fontSize:"9px",color:"var(--txt-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Pro Plan</div>
+      </div>
+
+      <div style={{marginBottom:8}}>
+        <div className="f ac jb" style={{marginBottom:3}}>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"10px",color:"var(--txt-muted)"}}>Session</span>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"12px",color:sessColor,fontWeight:600}}>
+            {u.session_messages} <span style={{opacity:0.5,fontSize:"10px"}}>/ {u.session_limit}</span>
+          </span>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.06)",borderRadius:3,height:5,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${Math.min(100,sessPercent)}%`,background:`linear-gradient(90deg,${sessColor}88,${sessColor})`,borderRadius:3,transition:"width 0.6s ease",boxShadow:`0 0 6px ${sessColor}55`}}/>
+        </div>
+        <div style={{fontFamily:"var(--f-mono)",fontSize:"9.5px",color:"var(--txt-muted)",marginTop:2}}>
+          Resets in {fmtSecs(u.session_reset_in)}
+        </div>
+      </div>
+
+      <div>
+        <div className="f ac jb" style={{marginBottom:3}}>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"10px",color:"var(--txt-muted)"}}>Weekly</span>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"12px",color:weekColor,fontWeight:600}}>
+            {u.weekly_messages} <span style={{opacity:0.5,fontSize:"10px"}}>/ {u.weekly_limit}</span>
+          </span>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.06)",borderRadius:3,height:5,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${Math.min(100,weekPercent)}%`,background:`linear-gradient(90deg,${weekColor}88,${weekColor})`,borderRadius:3,transition:"width 0.6s ease",boxShadow:`0 0 6px ${weekColor}55`}}/>
+        </div>
+        <div style={{fontFamily:"var(--f-mono)",fontSize:"9.5px",color:"var(--txt-muted)",marginTop:2}}>
+          Resets in {fmtSecs(u.weekly_reset_in)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Gemini Card ───────────────────────────────────────────────────────────────
+function GeminiCard({u}) {
+  if(!u) return <div className="uc gm"><div className="uc-name">Gemini · CLI</div><div className="muted mono t10">Loading…</div></div>;
+
+  const dailyPercent = u.daily_percentage || 0;
+  const weekPercent = u.weekly_percentage || 0;
+  const dailyColor = dailyPercent > 85 ? "#ff5a6a" : dailyPercent > 60 ? "#f0c040" : "var(--gemini)";
+  const weekColor = weekPercent > 85 ? "#ff5a6a" : weekPercent > 60 ? "#f0c040" : "var(--gemini)";
+
+  return (
+    <div className="uc gm">
+      <div className="f ac jb mb4">
+        <div className="uc-name" style={{marginBottom:0}}>Gemini · CLI</div>
+        <div style={{fontFamily:"var(--f-mono)",fontSize:"9px",color:"var(--txt-muted)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Free Tier</div>
+      </div>
+
+      <div style={{marginBottom:8}}>
+        <div className="f ac jb" style={{marginBottom:3}}>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"10px",color:"var(--txt-muted)"}}>Daily</span>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"12px",color:dailyColor,fontWeight:600}}>
+            {u.daily_calls} <span style={{opacity:0.5,fontSize:"10px"}}>/ {u.daily_limit}</span>
+          </span>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.06)",borderRadius:3,height:5,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${Math.min(100,dailyPercent)}%`,background:`linear-gradient(90deg,${dailyColor}88,${dailyColor})`,borderRadius:3,transition:"width 0.6s ease",boxShadow:`0 0 6px ${dailyColor}55`}}/>
+        </div>
+        <div style={{fontFamily:"var(--f-mono)",fontSize:"9.5px",color:"var(--txt-muted)",marginTop:2}}>
+          Resets in {fmtSecs(u.daily_reset_in)}
+        </div>
+      </div>
+
+      <div>
+        <div className="f ac jb" style={{marginBottom:3}}>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"10px",color:"var(--txt-muted)"}}>Weekly</span>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:"12px",color:weekColor,fontWeight:600}}>
+            {u.weekly_calls} <span style={{opacity:0.5,fontSize:"10px"}}>/ {u.weekly_limit}</span>
+          </span>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.06)",borderRadius:3,height:5,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${Math.min(100,weekPercent)}%`,background:`linear-gradient(90deg,${weekColor}88,${weekColor})`,borderRadius:3,transition:"width 0.6s ease",boxShadow:`0 0 6px ${weekColor}55`}}/>
+        </div>
+        <div style={{fontFamily:"var(--f-mono)",fontSize:"9.5px",color:"var(--txt-muted)",marginTop:2}}>
+          Resets in {fmtSecs(u.weekly_reset_in)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Kimi Card ─────────────────────────────────────────────────────────────────
+function KimiCard({bal,onSaveKey,onRefresh}){
+  const[editing,setEditing]=useState(false);
+  const[kv,setKv]=useState("");
+  const save=async()=>{
+    if(!kv.trim())return;
+    await onSaveKey(kv.trim());setEditing(false);setKv("");setTimeout(onRefresh,900);
+  };
+  const noKey=!bal||bal.error==="no_key";
+  const errMsg=bal&&bal.error?String(bal.error):null;
+  const hasErr=!!errMsg&&errMsg!=="no_key";
+  const hasBalance=!noKey&&!hasErr&&bal&&bal.available_balance!=null;
+  return(
+    <div className="uc km">
+      <div className="f ac jb mb4" style={{marginBottom:8}}>
+        <div className="uc-name" style={{marginBottom:0}}>Kimi · Moonshot</div>
+        <div className="f gap4 ac">
+          <button className="icon-btn" onClick={onRefresh} title="Refresh">↻</button>
+          <button className="icon-btn" onClick={()=>setEditing(e=>!e)}>{editing?"×":"key"}</button>
+        </div>
+      </div>
+      {noKey&&!editing&&<div className="muted mono t10" style={{marginBottom:4}}>No API key — click "key" to add</div>}
+      {hasErr&&<div className="mono t10" style={{color:"#ff5a6a",marginBottom:4,wordBreak:"break-all"}}>{errMsg}</div>}
+      {hasBalance&&(
+        <div>
+          <div className="balance-big" style={{color:"var(--kimi)",textShadow:"0 0 16px rgba(90,184,255,0.45)"}}>
+            $ {Number(bal.available_balance).toFixed(2)}
+          </div>
+          <div className="balance-sub">Available Balance</div>
+          {(bal.cash_balance!=null||bal.voucher_balance!=null)&&(
+            <div className="balance-sub" style={{marginTop:3}}>
+              Cash $ {Number(bal.cash_balance||0).toFixed(2)} · Voucher $ {Number(bal.voucher_balance||0).toFixed(2)}
+            </div>
+          )}
+        </div>
+      )}
+      {editing&&(
+        <div className="neuro-in f ac" style={{marginTop:8}}>
+          <input className="ki" placeholder="sk-… Moonshot API key (moonshot.ai)" type="password"
+            value={kv} onChange={e=>setKv(e.target.value)} onKeyDown={e=>e.key==="Enter"&&save()}/>
+          <button className="btn btn-sm" style={{margin:"3px 4px 3px 0"}} onClick={save}>Save</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Usage Dashboard ───────────────────────────────────────────────────────────
+function UsageDashboard(){
+  const[cl,setCl]=useState(null);
+  const[gm,setGm]=useState(null);
+  const[km,setKm]=useState(null);
+  const poll=useCallback(async()=>{
+    try{
+      const[a,b,c]=await Promise.all([
+        fetch(`${API}/api/claude-usage`).then(r=>r.json()),
+        fetch(`${API}/api/gemini-usage`).then(r=>r.json()),
+        fetch(`${API}/api/kimi-balance`).then(r=>r.json()),
+      ]);
+      setCl(a);setGm(b);setKm(c);
+    }catch{}
+  },[]);
+  useEffect(()=>{poll();const t=setInterval(poll,30000);return()=>clearInterval(t)},[poll]);
+  const saveKey=async key=>{
+    try{await fetch(`${API}/api/kimi-key`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key})})}catch{}
+  };
+  return(
+    <div className="glass" style={{overflow:"hidden"}}>
+      <div className="phdr">
+        <span className="ptitle">Token · Usage</span>
+        <button className="icon-btn" onClick={poll}>↻</button>
+      </div>
+      <div style={{padding:"10px 10px 4px"}}>
+        <ClaudeCard u={cl}/><GeminiCard u={gm}/><KimiCard bal={km} onSaveKey={saveKey} onRefresh={poll}/>
+      </div>
+    </div>
+  );
+}
+
+// ── Context Bridge ────────────────────────────────────────────────────────────
+function ContextBridge({counts,termRefs,onLog,onSwitch}){
+  const[showModal,setShowModal]=useState(false);
+  const[src,setSrc]=useState(null);
+  const[target,setTarget]=useState(null);
+  const[note,setNote]=useState("");
+  const[busy,setBusy]=useState(false);
+  const openModal=m=>{setSrc(m);setTarget(null);setNote("");setShowModal(true)};
+
+  const cleanBrief = (text) => {
+    return text
+      .replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '')  // strip ANSI
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')  // collapse 3+ blank lines to 2
+      .replace(/[ \t]+$/gm, '')    // strip trailing whitespace per line
+      .trim();
+  };
+
+  const formatAsMarkdown = (text, src, target, ts) => {
+    return `\r\n## Context Bridge: ${src.toUpperCase()} -> ${target.toUpperCase()} [${ts}]\r\n\r\n${cleanBrief(text)}\r\n\r\n---\r\n`;
+  };
+
+  const doTransfer=async()=>{
+    if(!src||!target||busy)return;
+    setBusy(true);
+    try{
+      const srcRef=termRefs.current[src];
+      let history=srcRef?.getText?.()||"";
+      history=stripAnsi(history).slice(-4500);
+      const res=await fetch(`${API}/api/optimize-context`,{method:"POST",
+        headers:{"Content-Type":"application/json"},body:JSON.stringify({history,note})});
+      const d=await res.json();
+      const brief=d.optimized||cleanBrief(history.slice(-2000));
+      const ws=termRefs.current[target]?.wsRef?.current;
+      if(ws&&ws.readyState===1){
+        const ts=new Date().toISOString().slice(0,16).replace("T"," ");
+        ws.send(formatAsMarkdown(brief, src, target, ts));
+        ws.send("\r");
+      }
+      onLog?.(`Bridge: ${src} → ${target}`,CLR[src]);
+      onSwitch?.(target);setShowModal(false);
+    }catch(e){onLog?.(`Bridge error: ${e.message}`,"#ff5a6a")}
+    finally{setBusy(false)}
+  };
+  return(
+    <>
+      <div className="glass" style={{overflow:"hidden"}}>
+        <div className="phdr">
+          <span className="ptitle">Context · Bridge</span>
+          <span className="muted mono t9">auto @ {BRIDGE_THRESHOLD} msgs</span>
+        </div>
+        <div style={{padding:"8px 12px"}}>
+          {MODELS.map(m=>{
+            const cnt=counts[m]||0;const pct=(cnt/BRIDGE_THRESHOLD)*100;const rdy=cnt>=BRIDGE_THRESHOLD;
+            return(
+              <div key={m} className="br-row">
+                <div className="br-dot" style={{background:CLR[m],color:CLR[m]}}/>
+                <span className="br-name" style={{color:CLR[m],textTransform:"uppercase"}}>{m}</span>
+                <div className="br-prog"><ProgressBar pct={pct} color={CLR[m]} h={4}/></div>
+                <span className="br-cnt">{cnt}/{BRIDGE_THRESHOLD}</span>
+                <button className="br-btn" disabled={cnt===0}
+                  style={{background:cnt>0?`${CLR[m]}18`:"transparent",border:`1px solid ${cnt>0?CLR[m]:"rgba(255,255,255,0.06)"}`,color:cnt>0?CLR[m]:"var(--txt-muted)"}}
+                  onClick={()=>openModal(m)}>{rdy?"⚡ Send":"Send"}</button>
+              </div>
+            );
+          })}
+          <div className="muted mono t9" style={{marginTop:8,lineHeight:1.7}}>Terminal oku → OpenRouter özetle → Hedef AI'ya gönder + Enter</div>
+        </div>
+      </div>
+      {showModal&&(
+        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setShowModal(false)}>
+          <div className="modal">
+            <div className="modal-title" style={{color:CLR[src]}}>⚡ Transfer from {src?.toUpperCase()}</div>
+            <div style={{fontSize:13,color:"var(--txt-dim)",fontFamily:"var(--f-mono)",marginBottom:12}}>OpenRouter will summarize terminal context and forward it to the target AI automatically.</div>
+            <div style={{marginBottom:12}}>
+              <div className="muted mono t10" style={{marginBottom:7}}>Transfer to:</div>
+              <div className="f gap6">
+                {MODELS.filter(m=>m!==src).map(m=>(
+                  <button key={m} className="btn f1"
+                    style={{borderColor:target===m?CLR[m]:"rgba(255,255,255,0.08)",color:target===m?CLR[m]:"var(--txt-dim)",background:target===m?`${CLR[m]}18`:"transparent"}}
+                    onClick={()=>setTarget(m)}>{m.charAt(0).toUpperCase()+m.slice(1)}</button>
+                ))}
+              </div>
+            </div>
+            <div className="neuro-in" style={{marginBottom:12}}>
+              <input className="ki" placeholder="Optional: add a context note…" value={note} onChange={e=>setNote(e.target.value)}/>
+            </div>
+            <div className="f gap6" style={{justifyContent:"flex-end"}}>
+              <button className="btn" onClick={()=>setShowModal(false)}>Cancel</button>
+              <button className="btn btn-cl" disabled={!target||busy} onClick={doTransfer}>{busy?"⏳ Packaging…":"⚡ Transfer"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Sys Monitor ───────────────────────────────────────────────────────────────
+function SysMonitor({m}){
+  const bars=[{lbl:"CPU",v:m.cpu||0,c:"#3ddc97"},{lbl:"MEM",v:m.mem||0,c:"var(--kimi)"},{lbl:"GPU",v:m.gpu||0,c:"var(--gemini)"}];
+  return(
+    <div className="glass" style={{overflow:"hidden"}}>
+      <div className="phdr"><span className="ptitle">Sys · Monitor</span><span className="up-badge">{m.uptime||"00:00"}</span></div>
+      <div style={{padding:"8px 12px"}}>
+        {bars.map(b=>(
+          <div key={b.lbl} className="m-row">
+            <span className="m-lbl">{b.lbl}</span>
+            <div className="m-bar"><ProgressBar pct={b.v} color={b.c} h={4}/></div>
+            <span className="m-val" style={{color:b.c}}>{b.v.toFixed(0)}%</span>
+          </div>
+        ))}
+        <div className="m-row"><span className="m-lbl">NET</span><span className="mono t10 dim f1 ac" style={{textAlign:"right"}}>{fmtKb(m.net_kb||0)}</span></div>
+        <div className="m-row"><span className="m-lbl">TEMP</span><span className="mono t10" style={{color:m.tmp>80?"#ff5a6a":"var(--txt-dim)"}}>{m.tmp != null && m.tmp > 0 ? `${m.tmp.toFixed(0)}°C` : "N/A"}</span></div>
+        <div className="m-row"><span className="m-lbl">PROC</span><span className="mono t10 dim">{m.procs||0}</span></div>
+      </div>
+    </div>
+  );
+}
+
+// ── Prompt Optimizer ──────────────────────────────────────────────────────────
+function PromptOptimizer({onLog}){
+  const[inp,setInp]=useState("");const[out,setOut]=useState("");const[busy,setBusy]=useState(false);const[cp,setCp]=useState(false);
+  const optimize=async()=>{
+    if(!inp.trim()||busy)return;setBusy(true);setOut("");
+    try{
+      const r=await fetch(`${API}/api/optimize-prompt`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:inp})});
+      const d=await r.json();
+      if(d.optimized){setOut(d.optimized);onLog?.("Prompt optimized via Gemini CLI","var(--gemini)")}
+      else setOut(`Error: ${d.error||"unknown"}`);
+    }catch(e){setOut(`Error: ${e.message}`)}
+    finally{setBusy(false)}
+  };
+  const copy=()=>{if(!out)return;navigator.clipboard.writeText(out).then(()=>{setCp(true);setTimeout(()=>setCp(false),2000)})};
+  return(
+    <div className="glass" style={{overflow:"hidden"}}>
+      <div className="phdr"><span className="ptitle">Prompt · Optimizer</span><div className="f ac gap4"><span className="muted mono t9">OpenRouter</span><div style={{width:7,height:7,borderRadius:"50%",background:"var(--gemini)",boxShadow:"0 0 6px var(--gemini-glow)"}}/></div></div>
+      <div style={{padding:"8px 10px 9px"}}>
+        <div className="neuro-in" style={{marginBottom:8}}>
+          <textarea className="opt-ta" placeholder="Enter prompt to optimize… (Ctrl+Enter)" value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&e.ctrlKey)optimize()}}/>
+        </div>
+        <button className="btn btn-gm" style={{width:"100%",marginBottom:out?8:0}} disabled={!inp.trim()||busy} onClick={optimize}>{busy?"⏳ Optimizing…":"⚡ Optimize via OpenRouter"}</button>
+        {out&&(
+          <div>
+            <div className="f ac jb" style={{marginBottom:5}}><span className="muted mono t9">Optimized output</span><button className="icon-btn" onClick={copy}>{cp?"✓ Copied":"Copy"}</button></div>
+            <div className="neuro-in"><div className="opt-out">{out}</div></div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Neural Animation ──────────────────────────────────────────────────────────
+function NeuralAnimation({active, animState}) {
+  const canvasRef = useRef(null);
+  const rafRef = useRef(null);
+  const nodesRef = useRef([]);
+  const tRef = useRef(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if(!canvas) return;
+    const ctx = canvas.getContext("2d");
+
+    const resize = () => {
+      const p = canvas.parentElement;
+      if(!p) return;
+      canvas.width = p.clientWidth;
+      canvas.height = p.clientHeight;
+      initNodes();
+    };
+
+    const initNodes = () => {
+      const W = canvas.width, H = canvas.height;
+      const N = 28;
+      nodesRef.current = Array.from({length: N}, (_, i) => ({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        r: 2 + Math.random() * 2.5,
+        pulse: Math.random() * Math.PI * 2,
+      }));
+    };
+
+    resize();
+    const ro = new ResizeObserver(resize);
+    if(canvas.parentElement) ro.observe(canvas.parentElement);
+
+    const colorMap = {claude:"224,157,85", gemini:"184,141,232", kimi:"90,184,255"};
+    let lastT = performance.now();
+
+    const animate = (now) => {
+      rafRef.current = requestAnimationFrame(animate);
+      const dt = Math.min((now - lastT) / 1000, 0.05);
+      lastT = now;
+      tRef.current += dt;
+      const t = tRef.current;
+
+      const W = canvas.width, H = canvas.height;
+      const col = colorMap[active] || colorMap.claude;
+      const spd = animState === "responding" ? 1.8 : animState === "active" ? 1.2 : 0.7;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Update nodes
+      const nodes = nodesRef.current;
+      nodes.forEach(n => {
+        n.x += n.vx * spd;
+        n.y += n.vy * spd;
+        n.pulse += dt * 1.8 * spd;
+        if(n.x < 0 || n.x > W) n.vx *= -1;
+        if(n.y < 0 || n.y > H) n.vy *= -1;
+        n.x = Math.max(0, Math.min(W, n.x));
+        n.y = Math.max(0, Math.min(H, n.y));
+      });
+
+      // Draw connections
+      const maxDist = Math.min(W, H) * 0.55;
+      for(let i = 0; i < nodes.length; i++) {
+        for(let j = i+1; j < nodes.length; j++) {
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const d = Math.sqrt(dx*dx + dy*dy);
+          if(d < maxDist) {
+            const a = (1 - d/maxDist) * 0.18;
+            ctx.save();
+            ctx.strokeStyle = `rgba(${col},${a})`;
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
+
+      // Draw nodes
+      nodes.forEach(n => {
+        const pulse = 0.4 + Math.sin(n.pulse) * 0.35;
+        ctx.save();
+        ctx.shadowColor = `rgb(${col})`;
+        ctx.shadowBlur = 6 * pulse;
+        ctx.fillStyle = `rgba(${col},${pulse * 0.9})`;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r * (0.8 + Math.sin(n.pulse) * 0.2), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Center label
+      ctx.save();
+      ctx.fillStyle = `rgba(${col},0.15)`;
+      ctx.font = "700 11px 'Fira Code', monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("NEURAL · NETWORK", W/2, H/2);
+      ctx.restore();
+    };
+
+    animate(performance.now());
+    return () => { cancelAnimationFrame(rafRef.current); ro.disconnect(); };
+  }, [active, animState]);
+
+  return (
+    <canvas ref={canvasRef} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}/>
+  );
+}
+
+// ── Neural Panel ──────────────────────────────────────────────────────────────
+function NeuralPanel({active, animState}) {
+  return (
+    <div className="glass" style={{overflow:"hidden",height:180,position:"relative"}}>
+      <div className="phdr" style={{position:"relative",zIndex:1}}>
+        <span className="ptitle">Neural · Network</span>
+        <span className="muted mono t9">{active.toUpperCase()}</span>
+      </div>
+      <div style={{position:"relative",height:"calc(100% - 37px)"}}>
+        <NeuralAnimation active={active} animState={animState}/>
+      </div>
+    </div>
+  );
+}
+
+// ── Council Panel ─────────────────────────────────────────────────────────────
+function CouncilPanel({onLog}) {
+  const [open, setOpen] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [system, setSystem] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [results, setResults] = useState(null);
+  const [showSystem, setShowSystem] = useState(false);
+  const [models, setModels] = useState({claude:"claude-3.5-haiku",gemini:"gemini-2.0-flash",kimi:"qwen3-8b"});
+
+  useEffect(() => {
+    fetch(`${API}/api/council-models`).then(r=>r.json()).then(d=>setModels(d.models||d)).catch(()=>{});
+  }, []);
+
+  const send = async () => {
+    if(!prompt.trim() || busy) return;
+    setBusy(true); setResults(null);
+    try {
+      const r = await fetch(`${API}/api/council`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({prompt: prompt.trim(), system: system.trim()})
+      });
+      const d = await r.json();
+      if(!r.ok){
+        setResults([{model:"error",slot:"error",error:d.error||`HTTP ${r.status}`}]);
+        onLog?.(`Council error: ${d.error||r.status}`,"#ff5a6a");
+        return;
+      }
+      setResults(d.results || []);
+      onLog?.("Council session complete", "var(--yellow)");
+    } catch(e) {
+      setResults([{model:"error",slot:"error",error:e.message}]);
+    }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <>
+      <div className="glass" style={{overflow:"hidden"}}>
+        <div className="phdr">
+          <span className="ptitle">AI · Council</span>
+          <span className="muted mono t9">3-way collaboration</span>
+        </div>
+        <div style={{padding:"8px 10px"}}>
+          <div className="muted mono t10" style={{marginBottom:8,lineHeight:1.6}}>
+            Send a prompt to all 3 AIs simultaneously via OpenRouter. Compare and synthesize responses.
+          </div>
+          <div className="f ac gap4" style={{marginBottom:8}}>
+            {["claude","gemini","kimi"].map(m=>(
+              <div key={m} className="f ac gap4" style={{padding:"3px 8px",borderRadius:4,background:`${CLR[m]}18`,border:`1px solid ${CLR[m]}44`}}>
+                <div className="ai-dot" style={{background:CLR[m],color:CLR[m]}}/>
+                <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                  <span style={{fontFamily:"var(--f-mono)",fontSize:10,color:CLR[m]}}>{m}</span>
+                  <span style={{fontFamily:"var(--f-mono)",fontSize:"7.5px",color:"var(--txt-muted)",opacity:0.7,maxWidth:70,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={models[m]}>{models[m]}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button className="btn" style={{width:"100%",borderColor:"var(--yellow)",color:"var(--yellow)",background:"rgba(240,192,64,0.08)"}}
+            onClick={()=>setOpen(true)}>
+            ⚡ Open Council
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setOpen(false)}>
+          <div className="modal" style={{width:"min(900px,95vw)",maxHeight:"85vh",overflowY:"auto"}}>
+            <div className="modal-title" style={{color:"var(--yellow)"}}>⚡ AI Council — 3-Way Collaboration</div>
+
+            <div style={{marginBottom:8}}>
+              <div className="f ac jb" style={{marginBottom:4}}>
+                <span className="muted mono t10">Prompt</span>
+                <button className="icon-btn" onClick={()=>setShowSystem(s=>!s)}>
+                  {showSystem?"Hide System":"+ System"}
+                </button>
+              </div>
+              {showSystem && (
+                <div className="neuro-in" style={{marginBottom:6}}>
+                  <textarea className="opt-ta" style={{minHeight:50}} placeholder="System prompt (optional)…"
+                    value={system} onChange={e=>setSystem(e.target.value)}/>
+                </div>
+              )}
+              <div className="neuro-in" style={{marginBottom:8}}>
+                <textarea className="opt-ta" style={{minHeight:100}} placeholder="What should all 3 AIs work on together? (Ctrl+Enter to send)"
+                  value={prompt} onChange={e=>setPrompt(e.target.value)}
+                  onKeyDown={e=>{if(e.key==="Enter"&&e.ctrlKey)send()}}/>
+              </div>
+              <div className="f gap6" style={{justifyContent:"flex-end"}}>
+                <button className="btn" onClick={()=>setOpen(false)}>Close</button>
+                <button className="btn" style={{borderColor:"var(--yellow)",color:"var(--yellow)",background:"rgba(240,192,64,0.08)"}}
+                  disabled={!prompt.trim()||busy} onClick={send}>
+                  {busy?"⏳ Querying 3 AIs…":"⚡ Send to Council"}
+                </button>
+              </div>
+            </div>
+
+            {busy && (
+              <div style={{textAlign:"center",padding:"20px 0",fontFamily:"var(--f-mono)",fontSize:12,color:"var(--txt-muted)"}}>
+                <div className="spin" style={{display:"inline-block",marginRight:8}}>◐</div>
+                Querying Claude · Gemini · Kimi in parallel…
+              </div>
+            )}
+
+            {results && (
+              <div style={{display:"grid",gridTemplateColumns:results.length===1?"1fr":"repeat(3,1fr)",gap:10,marginTop:12}}>
+                {results.map((r,i)=>{
+                  const slotName = r.slot || r.model || ["claude","gemini","kimi"][i] || "unknown";
+                  const col = CLR[slotName] || "#ff5a6a";
+                  const modelLabel = models[slotName] || r.model || slotName;
+                  return (
+                    <div key={i} style={{background:"#04070f",border:`1px solid ${col}33`,borderRadius:8,overflow:"hidden"}}>
+                      <div style={{padding:"6px 10px",borderBottom:`1px solid ${col}22`,fontFamily:"var(--f-mono)",fontSize:10,color:col}}>
+                        <div style={{textTransform:"uppercase",letterSpacing:"0.1em"}}>● {slotName} {r.tokens?`· ${r.tokens} tok`:""}</div>
+                        <div style={{fontSize:"8.5px",opacity:0.55,marginTop:1}}>{modelLabel}</div>
+                      </div>
+                      <div style={{padding:"8px 10px",fontFamily:"var(--f-mono)",fontSize:11,color:"var(--txt-dim)",lineHeight:1.65,whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:320,overflowY:"auto"}}>
+                        {r.error ? <span style={{color:"#ff5a6a"}}>Error: {r.error}</span> : r.response}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Activity Log ──────────────────────────────────────────────────────────────
+function ActivityLog({entries}){
+  const ref=useRef(null);
+  useEffect(()=>{if(ref.current)ref.current.scrollTop=ref.current.scrollHeight},[entries]);
+  return(
+    <div className="glass" style={{display:"flex",flexDirection:"column",minHeight:100}}>
+      <div className="phdr"><span className="ptitle">Activity · Log</span><span className="muted mono t9">{entries.length}</span></div>
+      <div ref={ref} style={{flex:1,padding:"3px 12px 8px",overflowY:"auto",maxHeight:150}}>
+        {entries.length===0&&<div className="muted mono t10" style={{padding:"7px 0"}}>No events…</div>}
+        {entries.map((e,i)=>(
+          <div key={i} className="log-e">
+            <span className="log-t">{e.time}</span>
+            <div className="log-d" style={{background:e.color||"var(--txt-muted)"}}/>
+            <span className="log-m">{e.msg}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── File Dropzone ─────────────────────────────────────────────────────────────
+function FileDropzone({onLog,active}){
+  const[over,setOver]=useState(false);const[files,setFiles]=useState([]);const inp=useRef(null);
+  const upload=async file=>{
+    const fd=new FormData();fd.append("file",file);
+    try{
+      const r=await fetch(`${API}/api/upload`,{method:"POST",body:fd});
+      const d=await r.json();
+      if(d.filename){setFiles(f=>[{name:d.filename,size:d.size,t:nowTs()},...f].slice(0,5));onLog?.(`Uploaded: ${d.filename}`,"#3ddc97")}
+    }catch(e){onLog?.(`Upload error: ${e.message}`,"#ff5a6a")}
+  };
+  const onDrop=async e=>{e.preventDefault();setOver(false);for(const f of e.dataTransfer.files)await upload(f)};
+  return(
+    <div className="glass" style={{overflow:"hidden"}}>
+      <div className="phdr"><span className="ptitle">File · Drop</span><span className="muted mono t9">{active}</span></div>
+      <div style={{padding:"9px 10px"}}>
+        <div className={`dz${over?" ov":""}`} onDrop={onDrop} onDragOver={e=>{e.preventDefault();setOver(true)}} onDragLeave={()=>setOver(false)} onClick={()=>inp.current?.click()}>
+          <span className="dz-icon">⊕</span>Drop files or click to upload
+        </div>
+        <input ref={inp} type="file" multiple style={{display:"none"}} onChange={e=>{for(const f of e.target.files)upload(f)}}/>
+        {files.map((f,i)=>(
+          <div key={i} className="f ac gap4" style={{padding:"3px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+            <span className="muted mono t9">{f.t}</span>
+            <span className="mono t9" style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"#3ddc97"}}>{f.name}</span>
+            <span className="muted mono t9">{(f.size/1024).toFixed(1)}k</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Terminal Pane ─────────────────────────────────────────────────────────────
+const TCFG={
+  fontFamily:"'Fira Code','Cascadia Code',monospace",
+  fontSize:13,lineHeight:1.4,cursorBlink:true,cursorStyle:"bar",scrollback:3000,
+  allowTransparency:true,
+  theme:{
+    background:"rgba(3,5,9,0.72)",foreground:"#e2eaf8",cursor:"#e09d55",cursorAccent:"#04060a",
+    selectionBackground:"rgba(90,184,255,0.22)",
+    black:"#0d1117",red:"#ff5a6a",green:"#3ddc97",yellow:"#f0c040",
+    blue:"#5ab8ff",magenta:"#b88de8",cyan:"#5ee7d0",white:"#e2eaf8",
+    brightBlack:"#3a4a60",brightRed:"#ff7a87",brightGreen:"#6effc2",brightYellow:"#ffdf80",
+    brightBlue:"#85c2ff",brightMagenta:"#c4a2f2",brightCyan:"#85f0e0",brightWhite:"#f0f5ff",
+  },
+};
+
+function TerminalPane({model,visible,wsObj,bcRef,onTextReady,onMsg,onReady,onUserInput,onUserSend}){
+  const cRef=useRef(null);
+  const tRef=useRef(null);
+  const fRef=useRef(null);
+  const init=useRef(false);
+  const inputBuf=useRef("");
+  const onUserInputRef=useRef(onUserInput);
+  const onUserSendRef=useRef(onUserSend);
+  useEffect(()=>{onUserInputRef.current=onUserInput},[onUserInput]);
+  useEffect(()=>{onUserSendRef.current=onUserSend},[onUserSend]);
+
+  useEffect(()=>{
+    if(init.current||!cRef.current)return;
+    init.current=true;
+    const term=new Terminal(TCFG);
+    const fit=new FitAddon.FitAddon();
+    term.loadAddon(fit);term.open(cRef.current);fit.fit();
+    tRef.current=term;fRef.current=fit;
+
+    // Fix paste: intercept Ctrl+V and read browser clipboard directly.
+    // Claude Code captures ^V (Ctrl+V) at PTY level for its own clipboard system,
+    // which doesn't have access to browser clipboard. This sends clipboard text directly.
+    term.attachCustomKeyEventHandler((e)=>{
+      if((e.ctrlKey||e.metaKey)&&e.key==='v'&&e.type==='keydown'){
+        navigator.clipboard.readText().then(text=>{
+          if(!text)return;
+          const ws=wsObj.current;
+          if(ws&&ws.readyState===1)ws.send('\x1b[200~'+text+'\x1b[201~');
+        }).catch(()=>{});
+        return false;
+      }
+      return true;
+    });
+
+    onTextReady?.(model,()=>{
+      const lines=[];
+      for(let i=0;i<term.buffer.active.length;i++)lines.push(term.buffer.active.getLine(i)?.translateToString(true)||"");
+      return lines.join("\n");
+    });
+    const connect=()=>{
+      const ws=new WebSocket(`${WS_BASE}/ws/pty/${model}`);
+      wsObj.current=ws;
+      ws.onopen=()=>{ws.send(JSON.stringify({type:"resize",cols:term.cols,rows:term.rows}));onReady?.()};
+      ws.onmessage=e=>term.write(e.data);
+      ws.onerror=()=>{};
+      ws.onclose=()=>setTimeout(connect,3000);
+    };
+    connect();
+    term.onData(d=>{
+      const ws=wsObj.current;
+      if(ws&&ws.readyState===1){
+        ws.send(d);
+        if(bcRef?.current)bcRef.current(d,model);
+        if(d==="\r"){
+          // Only count as a message if user actually typed something (not empty Enter)
+          const hasContent=inputBuf.current.trim().length>0;
+          inputBuf.current="";
+          if(model==="claude"&&hasContent)fetch(`${API}/api/claude-usage/increment`,{method:"POST"}).catch(()=>{});
+          onMsg?.();onUserSendRef.current?.();
+        }else{
+          if(d==="\x7f"||d==="\b"){inputBuf.current=inputBuf.current.slice(0,-1);}
+          else if(d.length===1&&d.charCodeAt(0)>=32){inputBuf.current+=d;}
+          onUserInputRef.current?.();
+        }
+      }
+    });
+    const ro=new ResizeObserver(()=>{
+      try{fit.fit()}catch{}
+      const ws=wsObj.current;
+      if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:"resize",cols:term.cols,rows:term.rows}));
+    });
+    ro.observe(cRef.current);
+    return()=>{ro.disconnect();try{term.dispose()}catch{}};
+  },[]);
+
+  useEffect(()=>{
+    if(visible&&fRef.current)setTimeout(()=>{try{fRef.current.fit()}catch{}},55);
+  },[visible]);
+
+  return<div ref={cRef} className={`xw${visible?" vis":""}`}/>;
+}
+
+// ── Terminal Hub ──────────────────────────────────────────────────────────────
+function TerminalHub({counts,termRefs,onMsg,active,setActive,onLog,onUserInput,onUserSend}){
+  const[bc,setBc]=useState(false);
+  const wsObjs=useRef({claude:{current:null},gemini:{current:null},kimi:{current:null}});
+  const bcRef=useRef(null);
+  const textGetters=useRef({});
+
+  useEffect(()=>{
+    if(bc){
+      bcRef.current=(data,srcModel)=>{
+        MODELS.forEach(m=>{if(m!==srcModel){const ws=wsObjs.current[m]?.current;if(ws&&ws.readyState===1)ws.send(data)}});
+      };
+    }else{bcRef.current=null}
+  },[bc]);
+
+  useEffect(()=>{
+    MODELS.forEach(m=>{
+      termRefs.current[m]={wsRef:wsObjs.current[m],getText:()=>textGetters.current[m]?.()||""};
+    });
+  });
+
+  const onTextReady=useCallback((model,getter)=>{textGetters.current[model]=getter},[]);
+  const aiClass=m=>m==="claude"?"cl":m==="gemini"?"gm":"km";
+
+  return(
+    <div className="glass" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      <div className="term-tabs">
+        {MODELS.map(m=>(
+          <button key={m} className={`t-tab${active===m?` active ${aiClass(m)}`:""}`} onClick={()=>setActive(m)}>
+            <span style={{marginRight:5,fontSize:9}}>●</span>{m.charAt(0).toUpperCase()+m.slice(1)}
+            {counts[m]>0&&(
+              <span style={{marginLeft:5,fontSize:9.5,padding:"1px 5px",borderRadius:10,background:`${CLR[m]}22`,color:CLR[m],fontFamily:"var(--f-mono)"}}>
+                {counts[m]}
+              </span>
+            )}
+          </button>
+        ))}
+        <button
+          className={`bc-btn${bc?" on":""}`}
+          onClick={()=>setBc(b=>!b)}
+          title="Broadcast Mode: sends your keystrokes to ALL 3 terminals simultaneously. Useful for running the same command on Claude, Gemini and Kimi at the same time."
+        >
+          {bc?"⚡ Broadcast ON":"Broadcast"}
+        </button>
+      </div>
+      {bc && (
+        <div style={{padding:"3px 10px",background:"rgba(240,192,64,0.08)",borderBottom:"1px solid rgba(240,192,64,0.2)",fontFamily:"var(--f-mono)",fontSize:"10px",color:"var(--yellow)"}}>
+          ⚡ Broadcast Mode: Her tuş 3 terminale aynı anda gönderiliyor
+        </div>
+      )}
+      <div className="term-body">
+        <VaultHoloAnimation activeModel={active} animState={termRefs._animState||"idle"}/>
+        {MODELS.map(m=>(
+          <TerminalPane key={m} model={m} visible={active===m}
+            wsObj={wsObjs.current[m]} bcRef={bcRef}
+            onTextReady={onTextReady}
+            onMsg={()=>onMsg(m)}
+            onReady={()=>onLog?.(`${m} terminal ready`,CLR[m])}
+            onUserInput={onUserInput}
+            onUserSend={onUserSend}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+function App(){
+  const[metrics,setMetrics]=useState({});
+  const[logs,setLogs]=useState([]);
+  const[active,setActive]=useState("claude");
+  const[counts,setCounts]=useState({claude:0,gemini:0,kimi:0});
+  const[animState,setAnimState]=useState("idle");
+  const termRefs=useRef({});
+  const animTimerRef=useRef(null);
+
+  const addLog=useCallback((msg,color="var(--txt-muted)")=>{
+    setLogs(l=>[...l.slice(-99),{msg,color,time:nowTs()}]);
+  },[]);
+
+  const onMsg=useCallback(m=>{setCounts(c=>({...c,[m]:c[m]+1}))},[]);
+
+  const handleSwitch=useCallback((model)=>{
+    setActive(model);
+    setAnimState("responding");
+    clearTimeout(animTimerRef.current);
+    animTimerRef.current=setTimeout(()=>setAnimState("idle"),1200);
+  },[]);
+
+  const handleUserInput=useCallback(()=>{
+    if(animState==="responding")return;
+    setAnimState("active");
+    clearTimeout(animTimerRef.current);
+    animTimerRef.current=setTimeout(()=>setAnimState("idle"),3000);
+  },[animState]);
+
+  const handleUserSend=useCallback(()=>{
+    setAnimState("responding");
+    clearTimeout(animTimerRef.current);
+    animTimerRef.current=setTimeout(()=>setAnimState("idle"),9000);
+  },[]);
+
+  // Pass animState to TerminalHub via ref trick
+  termRefs._animState=animState;
+
+  // metrics WS
+  useEffect(()=>{
+    let ws;
+    const connect=()=>{
+      ws=new WebSocket(`${WS_BASE}/ws/metrics`);
+      ws.onmessage=e=>{try{setMetrics(JSON.parse(e.data))}catch{}};
+      ws.onclose=()=>setTimeout(connect,3000);ws.onerror=()=>{};
+    };
+    connect();
+    return()=>{try{ws?.close()}catch{}};
+  },[]);
+
+  useEffect(()=>{
+    addLog("V.A.U.L.T. MARK XXIII online","var(--claude)");
+    addLog("Council Mode initialized — OpenRouter ready","var(--yellow)");
+    addLog("Neural animation active","var(--gemini)");
+  },[]);
+
+  const shutdown=async()=>{
+    if(!confirm("V.A.U.L.T. backend'i kapat?"))return;
+    await fetch(`${API}/api/shutdown`,{method:"POST"}).catch(()=>{});
+    addLog("Backend shutdown sent","#ff5a6a");
+  };
+
+  const aiClass=m=>m==="claude"?"cl":m==="gemini"?"gm":"km";
+
+  return(
+    <div id="root" style={{height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      <header className="app-header">
+        <div className="s-dot"/>
+        <div>
+          <div className="logo-mark">V.A.U.L.T.</div>
+          <div className="logo-sub">Virtual Assistant for Universal &amp; Local Tasks</div>
+        </div>
+        <div style={{flex:1}}/>
+        <div className="f ac gap6">
+          {MODELS.map(m=>(
+            <div key={m} className="ai-dot" style={{background:CLR[m],color:CLR[m],opacity:active===m?1:0.4,transition:"opacity 0.3s"}}/>
+          ))}
+          <span className="muted mono t9" style={{marginLeft:4}}>3 AI Terminals</span>
+        </div>
+        <span className="up-badge" style={{color:"#3ddc97",marginRight:4}}>↑ {metrics.uptime||"00:00"}</span>
+        <LiveClock/>
+        <span className="muted mono t9" style={{letterSpacing:"0.1em",marginLeft:6,marginRight:6}}>
+          <span style={{color:CLR[active],textShadow:`0 0 8px ${CLR[active]}`}}>● {active.toUpperCase()}</span>
+        </span>
+        <button className="icon-btn" onClick={shutdown} style={{color:"#ff5a6a",borderColor:"rgba(255,90,106,0.3)"}} title="Shutdown backend">⏻</button>
+      </header>
+
+      <main className="app-main">
+        <aside className="panel-l">
+          <UsageDashboard/>
+          <ContextBridge counts={counts} termRefs={termRefs} onLog={addLog} onSwitch={handleSwitch}/>
+          <SysMonitor m={metrics}/>
+        </aside>
+
+        <div className="panel-c">
+          <TerminalHub counts={counts} termRefs={termRefs} onMsg={onMsg}
+            active={active} setActive={handleSwitch} onLog={addLog}
+            onUserInput={handleUserInput} onUserSend={handleUserSend}/>
+        </div>
+
+        <aside className="panel-r">
+          <PromptOptimizer onLog={addLog}/>
+          <NeuralPanel active={active} animState={animState}/>
+          <CouncilPanel onLog={addLog}/>
+          <ActivityLog entries={logs}/>
+          <FileDropzone onLog={addLog} active={active}/>
+        </aside>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
