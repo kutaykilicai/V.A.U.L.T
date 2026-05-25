@@ -63,13 +63,13 @@ BANNER = r"""
         | | | |  _  |  | |
         |_| |_|_| |_|  |_|
 
-  V.A.U.L.T. MARK XXIV
+  V.A.U.L.T. MARK XXV
   Virtual Assistant for Universal & Local Tasks
-  Debate Council · Deep Research · Gemini Pro · Image Studio
+  Gemini Float · Paste Fix · Pro Account
   http://localhost:8765
 """
 
-app = FastAPI(title="V.A.U.L.T. MARK XXIV")
+app = FastAPI(title="V.A.U.L.T. MARK XXV")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

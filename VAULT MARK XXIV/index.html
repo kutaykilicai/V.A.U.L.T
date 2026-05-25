@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>V.A.U.L.T. MARK XXIV</title>
+<title>V.A.U.L.T. MARK XXV</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
@@ -240,7 +240,7 @@ function VaultHoloAnimation({activeModel,animState}){
       const glow=(0.55+Math.sin(t*spd*1.4)*0.18)*base/0.32;
       const fs=Math.min(W*0.16,110);
       ctx.save();ctx.shadowColor=`rgb(${col.r},${col.g},${col.b})`;ctx.shadowBlur=25*Math.min(1,glow);ctx.fillStyle=rgba(Math.min(1,glow*0.9));ctx.font=`700 ${fs}px 'Fira Code', monospace`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("V.A.U.L.T.",cx,cy-22);ctx.restore();
-      const sub=animState==="responding"?"PROCESSING . . .":animState==="active"?"● ACTIVE":`MARK XXIV · ${(activeModel==="web"?"GEMINI WEB":activeModel).toUpperCase()}`;
+      const sub=animState==="responding"?"PROCESSING . . .":animState==="active"?"● ACTIVE":`MARK XXV · ${(activeModel==="web"?"GEMINI WEB":activeModel).toUpperCase()}`;
       ctx.save();ctx.fillStyle=rgba(Math.min(1,glow*0.55));ctx.font=`${Math.min(W*0.02,13)}px 'Fira Code', monospace`;ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(sub,cx,cy+fs*0.4+8);ctx.restore();
       const hud=24;const hm=16;
       [[hm,hm,1,1],[W-hm,hm,-1,1],[W-hm,H-hm,-1,-1],[hm,H-hm,1,-1]].forEach(([x,y,sx,sy])=>{ctx.save();ctx.strokeStyle=rgba(Math.min(1,0.35*base/0.32));ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x+sx*hud*0.55,y);ctx.lineTo(x,y);ctx.lineTo(x,y+sy*hud*0.55);ctx.stroke();ctx.restore();});
@@ -867,20 +867,25 @@ function FileDropzone({onLog,active}){
   );
 }
 
-// ── Gemini Image Studio (Web tab) ─────────────────────────────────────────────
-function GeminiWebPane({visible}) {
-  const [url, setUrl] = useState("https://gemini.google.com/app");
+// ── Gemini Web Pane ────────────────────────────────────────────────────────────
+function GeminiWebPane({visible, onToggleFloat}) {
+  const PRO_URL = "https://accounts.google.com/AccountChooser?Email=vodkakutay%40gmail.com&continue=" + encodeURIComponent("https://gemini.google.com/app");
+  const [url, setUrl] = useState(PRO_URL);
   const [iframeKey, setIframeKey] = useState(0);
   const [blocked, setBlocked] = useState(false);
 
   const URLS = [
-    {label:"Gemini (Chat & Images)", value:"https://gemini.google.com/app"},
+    {label:"Gemini Pro (vodkakutay@gmail.com)", value: PRO_URL},
+    {label:"Gemini (default account)", value:"https://gemini.google.com/app"},
     {label:"Google AI Studio", value:"https://aistudio.google.com/app/prompts/new_chat"},
     {label:"ImageFX (Image Gen)", value:"https://labs.google/fx/tools/image-fx"},
     {label:"Gemini Advanced", value:"https://gemini.google.com/advanced"},
   ];
 
-  const openWindow = () => window.open(url, "_blank", "width=1280,height=800,menubar=no,toolbar=no");
+  const openWindow = () => {
+    const target = url.includes("gemini.google.com") && !url.includes("AccountChooser") ? PRO_URL : url;
+    window.open(target, "_blank", "width=1280,height=800,menubar=no,toolbar=no");
+  };
   const reload = () => { setBlocked(false); setIframeKey(k=>k+1); };
 
   return (
@@ -892,6 +897,7 @@ function GeminiWebPane({visible}) {
           {URLS.map(u=><option key={u.value} value={u.value}>{u.label}</option>)}
         </select>
         <button className="icon-btn" onClick={reload} title="Reload">↻</button>
+        <button className="icon-btn" onClick={onToggleFloat} title="Toggle Gemini Floating Panel (Ctrl+Shift+G)" style={{color:"var(--gemini)",borderColor:"rgba(184,141,232,0.3)"}}>⌾ Float</button>
         <button className="icon-btn" onClick={openWindow} title="Open in new window" style={{color:"var(--yellow)",borderColor:"rgba(240,192,64,0.3)"}}>↗ Window</button>
       </div>
 
@@ -903,7 +909,8 @@ function GeminiWebPane({visible}) {
           </div>
           <button className="btn btn-yw" onClick={openWindow}>↗ Open Gemini in Window</button>
           <div style={{fontFamily:"var(--f-mono)",fontSize:10,color:"var(--txt-muted)",textAlign:"center",marginTop:8,lineHeight:1.8}}>
-            You can log in and generate images there.<br/>The Gemini terminal tab also supports image generation via CLI.
+            Opens as <span style={{color:"var(--gemini)"}}>vodkakutay@gmail.com</span> (Pro account).<br/>
+            You can log in and generate images there.
           </div>
         </div>
       ) : (
@@ -915,12 +922,114 @@ function GeminiWebPane({visible}) {
           allow="camera; microphone; clipboard-read; clipboard-write; geolocation"
           onError={()=>setBlocked(true)}
           onLoad={e=>{
-            // Try to detect X-Frame-Options block by checking if frame loaded correctly
             try {
               const doc = e.target.contentDocument;
               if(!doc || doc.URL === "about:blank") setBlocked(true);
             } catch { setBlocked(true); }
           }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Gemini Floating Panel ─────────────────────────────────────────────────────
+function GeminiFloatingPanel({open, onClose}) {
+  const [pinned, setPinned] = useState(() => localStorage.getItem("gemini_float_pinned") !== "false");
+  const [pos, setPos] = useState({x: Math.max(0, window.innerWidth - 440), y: Math.max(0, window.innerHeight - 660)});
+  const [blocked, setBlocked] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
+  const [popupOpen, setPopupOpen] = useState(false);
+  const popupRef = useRef(null);
+  const dragRef = useRef({active:false,ox:0,oy:0});
+
+  const W = 420, H = 600;
+  const PRO_URL = "https://accounts.google.com/AccountChooser?Email=vodkakutay%40gmail.com&continue=" + encodeURIComponent("https://gemini.google.com/app");
+
+  useEffect(()=>{ localStorage.setItem("gemini_float_pinned", pinned ? "true" : "false"); },[pinned]);
+
+  useEffect(()=>{
+    if(!popupOpen)return;
+    const iv=setInterval(()=>{ if(popupRef.current?.closed){setPopupOpen(false);popupRef.current=null;} },1000);
+    return()=>clearInterval(iv);
+  },[popupOpen]);
+
+  useEffect(()=>{
+    const onMove=(e)=>{ if(!dragRef.current.active)return; setPos({x:e.clientX-dragRef.current.ox,y:e.clientY-dragRef.current.oy}); };
+    const onUp=()=>{ dragRef.current.active=false; };
+    document.addEventListener("mousemove",onMove);
+    document.addEventListener("mouseup",onUp);
+    return()=>{ document.removeEventListener("mousemove",onMove); document.removeEventListener("mouseup",onUp); };
+  },[]);
+
+  const openPopup=()=>{
+    if(popupRef.current&&!popupRef.current.closed){popupRef.current.focus();return;}
+    const left=Math.max(0,window.screen.availWidth-W-20);
+    const top=Math.max(0,window.screen.availHeight-H-80);
+    const p=window.open(PRO_URL,"gemini_float_win",`width=${W},height=${H},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=no`);
+    if(p){popupRef.current=p;setPopupOpen(true);}
+  };
+
+  if(!open)return null;
+
+  const posStyle=pinned?{right:20,bottom:20}:{left:pos.x,top:pos.y};
+
+  return (
+    <div style={{position:"fixed",...posStyle,width:W,height:H,zIndex:8500,background:"#070b14",border:"1px solid rgba(184,141,232,0.35)",borderRadius:12,overflow:"hidden",boxShadow:"0 12px 48px rgba(0,0,0,0.85), 0 0 24px rgba(184,141,232,0.08)",display:"flex",flexDirection:"column"}}>
+      {/* Header */}
+      <div
+        onMouseDown={(e)=>{if(!pinned){dragRef.current={active:true,ox:e.clientX-pos.x,oy:e.clientY-pos.y};e.preventDefault();}}}
+        style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 10px",background:"rgba(184,141,232,0.08)",borderBottom:"1px solid rgba(184,141,232,0.2)",cursor:pinned?"default":"move",flexShrink:0,userSelect:"none"}}
+      >
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <div style={{width:7,height:7,borderRadius:"50%",background:popupOpen?"var(--gemini)":"var(--txt-muted)",boxShadow:popupOpen?"0 0 6px var(--gemini-glow)":"none"}}/>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:10.5,color:"var(--gemini)",letterSpacing:"0.08em",fontWeight:600}}>GEMINI · FLOAT</span>
+          <span style={{fontFamily:"var(--f-mono)",fontSize:8.5,color:popupOpen?"var(--gemini)":"var(--txt-muted)",opacity:popupOpen?1:0.65}}>{popupOpen?"● active":pinned?"pinned":"free"}</span>
+        </div>
+        <div style={{display:"flex",gap:3}}>
+          <button className="icon-btn" onClick={()=>{setBlocked(false);setIframeKey(k=>k+1);}} title="Reload iframe">↻</button>
+          <button className="icon-btn" onClick={()=>setPinned(p=>!p)} title={pinned?"Unpin — enable drag":"Pin — fix to corner"} style={{color:pinned?"var(--yellow)":"var(--txt-muted)",borderColor:pinned?"rgba(240,192,64,0.3)":"var(--border)",background:pinned?"rgba(240,192,64,0.08)":"transparent"}}>
+            {pinned?"📌":"📍"}
+          </button>
+          <button className="icon-btn" onClick={onClose} title="Close (Ctrl+Shift+G)" style={{color:"var(--red)",borderColor:"rgba(255,90,106,0.3)"}}>✕</button>
+        </div>
+      </div>
+
+      {/* Content */}
+      {blocked ? (
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,gap:14}}>
+          {popupOpen ? (
+            <>
+              <div style={{width:12,height:12,borderRadius:"50%",background:"var(--gemini)",boxShadow:"0 0 14px var(--gemini-glow)",animation:"blink 2.5s ease-in-out infinite"}}/>
+              <div style={{fontFamily:"var(--f-mono)",fontSize:13,color:"var(--gemini)",fontWeight:600,letterSpacing:"0.08em",textAlign:"center"}}>GEMINI ACTIVE</div>
+              <div style={{fontFamily:"var(--f-mono)",fontSize:10,color:"var(--txt-muted)",textAlign:"center",lineHeight:1.85}}>
+                <span style={{color:"var(--gemini)"}}>vodkakutay@gmail.com</span> · Pro<br/>
+                <span style={{opacity:0.7}}>Switch to the Gemini window to interact</span>
+              </div>
+              <button className="btn btn-gm" onClick={openPopup}>Focus Gemini Window</button>
+            </>
+          ) : (
+            <>
+              <div style={{fontFamily:"var(--f-mono)",fontSize:12,color:"var(--txt-dim)",textAlign:"center",lineHeight:1.9}}>
+                Google blocks direct embedding.<br/>
+                Open as a borderless floating window.
+              </div>
+              <button className="btn btn-gm" style={{padding:"9px 24px"}} onClick={openPopup}>↗ Open Gemini Window</button>
+              <div style={{fontFamily:"var(--f-mono)",fontSize:9.5,color:"var(--txt-muted)",textAlign:"center",lineHeight:1.9}}>
+                Account: <span style={{color:"var(--gemini)"}}>vodkakutay@gmail.com</span> (Pro)<br/>
+                <span style={{opacity:0.65}}>420×600 · Ctrl+Shift+G to toggle</span>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <iframe
+          key={iframeKey}
+          src={PRO_URL}
+          style={{flex:1,border:"none",width:"100%",height:"100%"}}
+          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation allow-modals"
+          allow="camera; microphone; clipboard-read; clipboard-write"
+          onLoad={e=>{try{const doc=e.target.contentDocument;if(!doc||doc.URL==="about:blank")setBlocked(true);}catch{setBlocked(true);}}}
         />
       )}
     </div>
@@ -951,13 +1060,12 @@ function TerminalPane({model,visible,wsObj,bcRef,onTextReady,onMsg,onReady,onUse
     if(init.current||!cRef.current)return;init.current=true;
     const term=new Terminal(TCFG);const fit=new FitAddon.FitAddon();
     term.loadAddon(fit);term.open(cRef.current);fit.fit();tRef.current=term;fRef.current=fit;
-    term.attachCustomKeyEventHandler((e)=>{
-      if((e.ctrlKey||e.metaKey)&&e.key==='v'&&e.type==='keydown'){
-        navigator.clipboard.readText().then(text=>{if(!text)return;const ws=wsObj.current;if(ws&&ws.readyState===1)ws.send('\x1b[200~'+text+'\x1b[201~');}).catch(()=>{});
-        return false;
-      }
-      return true;
-    });
+    cRef.current.addEventListener('paste',(e)=>{
+      e.preventDefault();e.stopPropagation();
+      const text=e.clipboardData?.getData('text');
+      if(!text)return;
+      const ws=wsObj.current;if(ws&&ws.readyState===1)ws.send('\x1b[200~'+text+'\x1b[201~');
+    },true);
     onTextReady?.(model,()=>{const lines=[];for(let i=0;i<term.buffer.active.length;i++)lines.push(term.buffer.active.getLine(i)?.translateToString(true)||"");return lines.join("\n");});
     const connect=()=>{
       const ws=new WebSocket(`${WS_BASE}/ws/pty/${model}`);wsObj.current=ws;
@@ -968,6 +1076,7 @@ function TerminalPane({model,visible,wsObj,bcRef,onTextReady,onMsg,onReady,onUse
     term.onData(d=>{
       const ws=wsObj.current;
       if(ws&&ws.readyState===1){
+        if(d==='\x16'){navigator.clipboard.readText().then(t=>{if(t&&ws.readyState===1)ws.send('\x1b[200~'+t+'\x1b[201~');}).catch(()=>ws.send(d));return;}
         ws.send(d);if(bcRef?.current)bcRef.current(d,model);
         if(d==="\r"){
           const hasContent=inputBuf.current.trim().length>0;inputBuf.current="";
@@ -989,7 +1098,7 @@ function TerminalPane({model,visible,wsObj,bcRef,onTextReady,onMsg,onReady,onUse
 }
 
 // ── Terminal Hub ──────────────────────────────────────────────────────────────
-function TerminalHub({counts,termRefs,onMsg,active,setActive,onLog,onUserInput,onUserSend}){
+function TerminalHub({counts,termRefs,onMsg,active,setActive,onLog,onUserInput,onUserSend,onToggleGeminiFloat}){
   const[bc,setBc]=useState(false);
   const wsObjs=useRef({claude:{current:null},gemini:{current:null},kimi:{current:null}});
   const bcRef=useRef(null);const textGetters=useRef({});
@@ -1041,7 +1150,7 @@ function TerminalHub({counts,termRefs,onMsg,active,setActive,onLog,onUserInput,o
             onUserInput={onUserInput}
             onUserSend={onUserSend}/>
         ))}
-        <GeminiWebPane visible={active==="web"}/>
+        <GeminiWebPane visible={active==="web"} onToggleFloat={onToggleGeminiFloat}/>
       </div>
     </div>
   );
@@ -1054,8 +1163,17 @@ function App(){
   const[active,setActive]=useState("claude");
   const[counts,setCounts]=useState({claude:0,gemini:0,kimi:0});
   const[animState,setAnimState]=useState("idle");
+  const[geminiFloat,setGeminiFloat]=useState(()=>localStorage.getItem("gemini_float_open")==="true");
   const termRefs=useRef({});
   const animTimerRef=useRef(null);
+
+  useEffect(()=>{ localStorage.setItem("gemini_float_open",geminiFloat?"true":"false"); },[geminiFloat]);
+
+  useEffect(()=>{
+    const h=(e)=>{ if(e.ctrlKey&&e.shiftKey&&(e.key==="G"||e.key==="g")){e.preventDefault();setGeminiFloat(o=>!o);} };
+    document.addEventListener("keydown",h);
+    return()=>document.removeEventListener("keydown",h);
+  },[]);
 
   const addLog=useCallback((msg,color="var(--txt-muted)")=>{
     setLogs(l=>[...l.slice(-99),{msg,color,time:nowTs()}]);
@@ -1096,10 +1214,10 @@ function App(){
   },[]);
 
   useEffect(()=>{
-    addLog("V.A.U.L.T. MARK XXIV online","var(--claude)");
+    addLog("V.A.U.L.T. MARK XXV online","var(--claude)");
     addLog("Debate Council initialized","var(--yellow)");
     addLog("Deep Research engine ready","var(--green)");
-    addLog("Gemini Web Studio available","var(--gemini)");
+    addLog("Gemini Float ready · Ctrl+Shift+G","var(--gemini)");
   },[]);
 
   const shutdown=async()=>{
@@ -1128,7 +1246,7 @@ function App(){
         <span className="muted mono t9" style={{letterSpacing:"0.1em",marginLeft:6,marginRight:6}}>
           <span style={{color:CLR[active]||"var(--yellow)",textShadow:`0 0 8px ${CLR[active]||"var(--yellow)"}`}}>● {active==="web"?"GEMINI WEB":active.toUpperCase()}</span>
         </span>
-        <span className="up-badge" style={{color:"var(--txt-muted)",fontSize:"9px",letterSpacing:"0.06em"}}>MARK XXIV</span>
+        <span className="up-badge" style={{color:"var(--txt-muted)",fontSize:"9px",letterSpacing:"0.06em"}}>MARK XXV</span>
         <button className="icon-btn" onClick={shutdown} style={{color:"#ff5a6a",borderColor:"rgba(255,90,106,0.3)",marginLeft:6}} title="Shutdown backend">⏻</button>
       </header>
 
@@ -1142,7 +1260,8 @@ function App(){
         <div className="panel-c">
           <TerminalHub counts={counts} termRefs={termRefs} onMsg={onMsg}
             active={active} setActive={handleSwitch} onLog={addLog}
-            onUserInput={handleUserInput} onUserSend={handleUserSend}/>
+            onUserInput={handleUserInput} onUserSend={handleUserSend}
+            onToggleGeminiFloat={()=>setGeminiFloat(o=>!o)}/>
         </div>
 
         <aside className="panel-r">
@@ -1154,6 +1273,7 @@ function App(){
           <FileDropzone onLog={addLog} active={active}/>
         </aside>
       </main>
+      <GeminiFloatingPanel open={geminiFloat} onClose={()=>setGeminiFloat(false)}/>
     </div>
   );
 }
