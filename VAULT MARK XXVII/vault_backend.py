@@ -55,7 +55,6 @@ TOOL_LAUNCH = {
     "gemini": "gemini --yolo\r\n",
 }
 
-# ── Fix #1: Clean BANNER ─────────────────────────────────────────────────────
 BANNER = r"""
  __   ___   _   _   _  _____
  \ \ / / | | | | | | ||_   _|
@@ -64,14 +63,13 @@ BANNER = r"""
         | | | |  _  |  | |
         |_| |_|_| |_|  |_|
 
-  V.A.U.L.T. MARK XXIII
+  V.A.U.L.T. MARK XXVII
   Virtual Assistant for Universal & Local Tasks
-  Council Mode · Bug Fixes · OpenRouter Integration
+  Gemini Embed Proxy · Auto Cache Clear · Clean Launch
   http://localhost:8765
 """
 
-# ── Fix #5: Updated MARK number ──────────────────────────────────────────────
-app = FastAPI(title="V.A.U.L.T. MARK XXIII")
+app = FastAPI(title="V.A.U.L.T. MARK XXVII")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -264,31 +262,157 @@ async def _get_session(model: str) -> PtySession:
         return session
 
 
-# ── Fix #4: Model-specific launch delay ──────────────────────────────────────
 async def _launch_tool(session: PtySession, model: str) -> None:
-    delay = 1.5 if model == "gemini" else 1.2
-    await asyncio.sleep(delay)
-    if session.is_alive():
-        session.write("chcp 65001 | Out-Null\r\n")
-        await asyncio.sleep(0.5)
-        if model in TOOL_LAUNCH:
-            session.write(TOOL_LAUNCH[model])
-        session._launched = True
+    # Wait for PowerShell to initialize
+    await asyncio.sleep(1.2)
+    if not session.is_alive():
+        return
+    # Set UTF-8 encoding
+    session.write("chcp 65001 | Out-Null\r\n")
+    await asyncio.sleep(0.4)
+    # Clear screen so PowerShell prompt isn't visible before tool starts
+    session.write("cls\r\n")
+    await asyncio.sleep(0.2)
+    if model in TOOL_LAUNCH:
+        session.write(TOOL_LAUNCH[model])
+    session._launched = True
+
+
+# ── API key loading ───────────────────────────────────────────────────────────
+
+_OR_KEY_FILE = MARK_DIR / "openrouter_key.txt"
+OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "")
+if not OPENROUTER_KEY and _OR_KEY_FILE.exists():
+    try:
+        OPENROUTER_KEY = _OR_KEY_FILE.read_text(encoding="utf-8").strip()
+    except Exception:
+        pass
+
+_GEMINI_KEY_FILE = MARK_DIR / "gemini_key.txt"
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+if not GEMINI_API_KEY and _GEMINI_KEY_FILE.exists():
+    try:
+        GEMINI_API_KEY = _GEMINI_KEY_FILE.read_text(encoding="utf-8").strip()
+    except Exception:
+        pass
+
+COUNCIL_MODELS = {
+    "claude": "anthropic/claude-3.5-haiku",
+    "gemini": "google/gemini-2.0-flash-001",
+    "kimi":   "qwen/qwen3-8b",
+}
+
+
+# ── Gemini Direct API ─────────────────────────────────────────────────────────
+
+async def _call_gemini_direct(
+    messages: list,
+    system: str = "",
+    max_tokens: int = 1500,
+) -> tuple[str, int]:
+    if not GEMINI_API_KEY:
+        raise ValueError("No Gemini API key configured")
+
+    contents = []
+    for msg in messages:
+        role = "user" if msg["role"] == "user" else "model"
+        contents.append({"role": role, "parts": [{"text": msg["content"]}]})
+
+    req_body: dict = {
+        "contents": contents,
+        "generationConfig": {"maxOutputTokens": max_tokens},
+    }
+    if system:
+        req_body["systemInstruction"] = {"parts": [{"text": system}]}
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        r = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}",
+            json=req_body,
+        )
+    data = r.json()
+    if r.status_code != 200:
+        err = data.get("error", {})
+        raise ValueError(err.get("message", str(data)))
+
+    candidates = data.get("candidates", [])
+    if not candidates:
+        raise ValueError(f"No candidates in response: {data}")
+
+    text = candidates[0]["content"]["parts"][0]["text"]
+    usage = data.get("usageMetadata", {})
+    tokens = usage.get("totalTokenCount", usage.get("candidatesTokenCount", 0))
+    return text, tokens
+
+
+async def _query_model_smart(
+    name: str,
+    model_id: str,
+    prompt: str,
+    system: str = "",
+    max_tokens: int = 1200,
+) -> dict:
+    # Use Gemini API directly when key is available
+    if name == "gemini" and GEMINI_API_KEY:
+        try:
+            messages = [{"role": "user", "content": prompt}]
+            text, tokens = await _call_gemini_direct(messages, system, max_tokens)
+            _gemini_usage["daily_calls"]  += 1
+            _gemini_usage["weekly_calls"] += 1
+            _save_gemini_usage()
+            return {"model": name, "slot": name, "response": text, "tokens": tokens}
+        except Exception as e:
+            return {"model": name, "slot": name, "error": str(e)[:300]}
+
+    if not OPENROUTER_KEY:
+        return {"model": name, "slot": name, "error": "No API key (OpenRouter or Gemini)"}
+
+    try:
+        messages_list = []
+        if system:
+            messages_list.append({"role": "system", "content": system})
+        messages_list.append({"role": "user", "content": prompt})
+
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_KEY}",
+                    "HTTP-Referer": "http://localhost:8765",
+                    "X-Title": "V.A.U.L.T.",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model_id,
+                    "messages": messages_list,
+                    "max_tokens": max_tokens,
+                },
+            )
+        data = r.json()
+        if r.status_code != 200:
+            err = data.get("error", {})
+            err_msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+            return {"model": name, "slot": name, "error": err_msg}
+
+        choices = data.get("choices")
+        if not choices:
+            err = data.get("error", {})
+            err_msg = err.get("message", str(data)) if isinstance(err, dict) else str(data)
+            return {"model": name, "slot": name, "error": err_msg}
+
+        choice = choices[0]["message"]["content"]
+        usage  = data.get("usage", {})
+        tokens = usage.get("total_tokens", usage.get("completion_tokens", 0))
+        return {"model": name, "slot": name, "response": choice, "tokens": tokens}
+    except Exception as e:
+        return {"model": name, "slot": name, "error": str(e)[:300]}
 
 
 # ── HTTP routes ───────────────────────────────────────────────────────────────
 
 @app.get("/")
 async def serve_index() -> FileResponse:
-    return FileResponse(
-        str(INDEX_HTML),
-        media_type="text/html",
-        headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        },
-    )
+    return FileResponse(str(INDEX_HTML), media_type="text/html")
 
 
 @app.get("/api/memory")
@@ -423,6 +547,28 @@ async def save_kimi_key(req: Request) -> JSONResponse:
     return JSONResponse({"ok": True})
 
 
+# ── Gemini Pro API key management ─────────────────────────────────────────────
+
+@app.get("/api/gemini-key-status")
+async def gemini_key_status() -> JSONResponse:
+    return JSONResponse({"has_key": bool(GEMINI_API_KEY)})
+
+
+@app.post("/api/gemini-key")
+async def save_gemini_key(req: Request) -> JSONResponse:
+    global GEMINI_API_KEY
+    body = await req.json()
+    key  = body.get("key", "").strip()
+    if not key:
+        return JSONResponse({"error": "empty"}, status_code=400)
+    try:
+        _GEMINI_KEY_FILE.write_text(key, encoding="utf-8")
+        GEMINI_API_KEY = key
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    return JSONResponse({"ok": True})
+
+
 # ── Gemini usage ──────────────────────────────────────────────────────────────
 
 @app.get("/api/gemini-usage")
@@ -452,26 +598,11 @@ async def get_gemini_usage() -> JSONResponse:
         "weekly_limit":     GEMINI_WEEKLY_LIMIT,
         "weekly_percentage": min(100.0, round(_gemini_usage["weekly_calls"] / GEMINI_WEEKLY_LIMIT * 100, 1)),
         "weekly_reset_in":  max(0, 7 * 86400 - week_elapsed),
+        "has_pro_key":      bool(GEMINI_API_KEY),
     })
 
 
-# ── Fix #3: Prompt optimizer via OpenRouter (no Gemini CLI subprocess) ────────
-
-# ── OpenRouter key loading ────────────────────────────────────────────────────
-_OR_KEY_FILE = MARK_DIR / "openrouter_key.txt"
-OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "")
-if not OPENROUTER_KEY and _OR_KEY_FILE.exists():
-    try:
-        OPENROUTER_KEY = _OR_KEY_FILE.read_text(encoding="utf-8").strip()
-    except Exception:
-        pass
-
-COUNCIL_MODELS = {
-    "claude": "anthropic/claude-3.5-haiku",
-    "gemini": "google/gemini-2.0-flash-001",
-    "kimi":   "qwen/qwen3-8b",
-}
-
+# ── Prompt optimizer ──────────────────────────────────────────────────────────
 
 @app.post("/api/optimize-prompt")
 async def optimize_prompt(req: Request) -> JSONResponse:
@@ -487,36 +618,10 @@ async def optimize_prompt(req: Request) -> JSONResponse:
         f"Original prompt:\n{prompt}"
     )
 
-    if not OPENROUTER_KEY:
-        return JSONResponse({"error": "OpenRouter key not configured"}, status_code=500)
-
-    try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            r = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {OPENROUTER_KEY}",
-                    "HTTP-Referer": "http://localhost:8765",
-                    "X-Title": "V.A.U.L.T.",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": COUNCIL_MODELS["gemini"],
-                    "messages": [{"role": "user", "content": full}],
-                    "max_tokens": 800,
-                }
-            )
-        data = r.json()
-        if "choices" not in data:
-            err = data.get("error", {})
-            return JSONResponse({"error": str(err.get("message", data))}, status_code=500)
-        output = data["choices"][0]["message"]["content"].strip()
-        _gemini_usage["daily_calls"]  += 1
-        _gemini_usage["weekly_calls"] += 1
-        _save_gemini_usage()
-        return JSONResponse({"optimized": output})
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+    result = await _query_model_smart("gemini", COUNCIL_MODELS["gemini"], full, "", 800)
+    if "error" in result:
+        return JSONResponse({"error": result["error"]}, status_code=500)
+    return JSONResponse({"optimized": result["response"]})
 
 
 # ── Context Bridge ────────────────────────────────────────────────────────────
@@ -540,35 +645,10 @@ async def optimize_context(req: Request) -> JSONResponse:
         f"Terminal session:\n{history[:4000]}"
     )
 
-    if not OPENROUTER_KEY:
-        return JSONResponse({"optimized": None, "error": "OpenRouter key not configured"})
-
-    try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            r = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {OPENROUTER_KEY}",
-                    "HTTP-Referer": "http://localhost:8765",
-                    "X-Title": "V.A.U.L.T.",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": COUNCIL_MODELS["gemini"],
-                    "messages": [{"role": "user", "content": system_prompt}],
-                    "max_tokens": 1000,
-                }
-            )
-        data = r.json()
-        if "choices" not in data:
-            err = data.get("error", {})
-            return JSONResponse({"optimized": None, "error": str(err.get("message", data))})
-        output = data["choices"][0]["message"]["content"].strip()
-        if output:
-            return JSONResponse({"optimized": output})
-        return JSONResponse({"optimized": None, "error": "no output from OpenRouter"})
-    except Exception as e:
-        return JSONResponse({"optimized": None, "error": str(e)})
+    result = await _query_model_smart("gemini", COUNCIL_MODELS["gemini"], system_prompt, "", 1000)
+    if "error" in result:
+        return JSONResponse({"optimized": None, "error": result["error"]})
+    return JSONResponse({"optimized": result.get("response")})
 
 
 @app.post("/api/strip-ansi")
@@ -588,7 +668,6 @@ def _sb_path(rel: str = "") -> Path:
     base = SECOND_BRAIN
     if not rel:
         return base
-    # prevent path traversal
     p = (base / rel).resolve()
     if not str(p).startswith(str(base.resolve())):
         return base
@@ -720,17 +799,19 @@ async def shutdown_server() -> JSONResponse:
     return JSONResponse({"ok": True})
 
 
-# ── Fix #2: Council Mode (OpenRouter) with improved error handling ─────────────
+# ── Council Models ────────────────────────────────────────────────────────────
 
 @app.get("/api/council-models")
 async def get_council_models() -> JSONResponse:
     return JSONResponse({"models": COUNCIL_MODELS})
 
 
+# ── Standard Council (3 parallel responses) ───────────────────────────────────
+
 @app.post("/api/council")
 async def council_query(req: Request) -> JSONResponse:
-    if not OPENROUTER_KEY:
-        return JSONResponse({"error": "OpenRouter key not configured. Add your key to openrouter_key.txt"}, status_code=500)
+    if not OPENROUTER_KEY and not GEMINI_API_KEY:
+        return JSONResponse({"error": "No API key configured (OpenRouter or Gemini Pro)"}, status_code=500)
 
     body   = await req.json()
     prompt = body.get("prompt", "").strip()
@@ -739,50 +820,171 @@ async def council_query(req: Request) -> JSONResponse:
     if not prompt:
         return JSONResponse({"error": "empty_prompt"}, status_code=400)
 
-    async def _query_model(name: str, model_id: str) -> dict:
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                messages = []
-                if system:
-                    messages.append({"role": "system", "content": system})
-                messages.append({"role": "user", "content": prompt})
-
-                r = await client.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {OPENROUTER_KEY}",
-                        "HTTP-Referer": "http://localhost:8765",
-                        "X-Title": "V.A.U.L.T.",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": model_id,
-                        "messages": messages,
-                        "max_tokens": 1000,
-                    },
-                )
-                data = r.json()
-                if r.status_code != 200:
-                    err = data.get("error", {})
-                    err_msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
-                    return {"model": name, "slot": name, "error": err_msg}
-
-                choices = data.get("choices")
-                if not choices:
-                    err = data.get("error", {})
-                    err_msg = err.get("message", str(data)) if isinstance(err, dict) else str(data)
-                    return {"model": name, "slot": name, "error": err_msg}
-
-                choice = choices[0]["message"]["content"]
-                usage  = data.get("usage", {})
-                tokens = usage.get("total_tokens", usage.get("completion_tokens", 0))
-                return {"model": name, "slot": name, "response": choice, "tokens": tokens}
-        except Exception as e:
-            return {"model": name, "slot": name, "error": str(e)[:300]}
-
-    tasks   = [_query_model(name, model_id) for name, model_id in COUNCIL_MODELS.items()]
+    tasks   = [_query_model_smart(name, model_id, prompt, system) for name, model_id in COUNCIL_MODELS.items()]
     results = await asyncio.gather(*tasks)
     return JSONResponse({"results": list(results)})
+
+
+# ── Debate Council (multi-round LLM-Council style) ────────────────────────────
+
+@app.post("/api/council-debate")
+async def council_debate(req: Request) -> JSONResponse:
+    if not OPENROUTER_KEY and not GEMINI_API_KEY:
+        return JSONResponse({"error": "No API key configured"}, status_code=500)
+
+    body   = await req.json()
+    prompt = body.get("prompt", "").strip()
+    if not prompt:
+        return JSONResponse({"error": "empty_prompt"}, status_code=400)
+
+    # ── Round 1: Initial responses ────────────────────────────────────────────
+    r1_system = "You are a thoughtful AI expert. Give a clear, reasoned initial response."
+    round1 = list(await asyncio.gather(*[
+        _query_model_smart(name, mid, prompt, r1_system, 1200)
+        for name, mid in COUNCIL_MODELS.items()
+    ]))
+
+    # ── Round 2: Critique & debate ────────────────────────────────────────────
+    r1_ctx = "\n\n".join(
+        f"**{r['model'].upper()}:** {r.get('response', 'Error: ' + str(r.get('error', '')))[:800]}"
+        for r in round1
+    )
+    r2_prompt = (
+        f"Original question: {prompt}\n\n"
+        f"Initial responses from the 3 AIs:\n{r1_ctx}\n\n"
+        "Now engage in debate: Critique what you disagree with, acknowledge what's correct, "
+        "and deepen or refine your own position with specific reasoning."
+    )
+    r2_system = (
+        "You are an AI in a structured multi-agent debate. "
+        "Engage critically and substantively with the other AI perspectives. "
+        "Be direct about disagreements while remaining constructive."
+    )
+    round2 = list(await asyncio.gather(*[
+        _query_model_smart(name, mid, r2_prompt, r2_system, 1200)
+        for name, mid in COUNCIL_MODELS.items()
+    ]))
+
+    # ── Synthesis: Final unified answer ───────────────────────────────────────
+    r2_ctx = "\n\n".join(
+        f"**{r['model'].upper()} (Round 2):** {r.get('response', 'Error')[:800]}"
+        for r in round2
+    )
+    synth_prompt = (
+        f"Research question: {prompt}\n\n"
+        f"Round 1 (Initial):\n{r1_ctx}\n\n"
+        f"Round 2 (Debate):\n{r2_ctx}\n\n"
+        "Synthesize all perspectives into ONE definitive, comprehensive answer. "
+        "Identify consensus, resolve contradictions, and provide the strongest unified response."
+    )
+    synth_system = (
+        "You are a neutral expert synthesizer. "
+        "Merge multi-AI debate insights into the single best answer possible."
+    )
+    # Use Gemini Pro if available, otherwise Claude for synthesis
+    synth_model = "gemini" if GEMINI_API_KEY else "claude"
+    synthesis = await _query_model_smart(
+        synth_model, COUNCIL_MODELS[synth_model], synth_prompt, synth_system, 2000
+    )
+
+    return JSONResponse({
+        "round1":    round1,
+        "round2":    round2,
+        "synthesis": synthesis,
+    })
+
+
+# ── Deep Research ─────────────────────────────────────────────────────────────
+
+@app.post("/api/deep-research")
+async def deep_research(req: Request) -> JSONResponse:
+    body  = await req.json()
+    query = body.get("query", "").strip()
+    urls  = body.get("urls", [])
+
+    if not query:
+        return JSONResponse({"error": "empty"}, status_code=400)
+    if not OPENROUTER_KEY and not GEMINI_API_KEY:
+        return JSONResponse({"error": "API key required"}, status_code=500)
+
+    # Step 1: Decompose into sub-questions
+    decomp_prompt = (
+        f"Break this research query into exactly 3 focused sub-questions for comprehensive coverage.\n"
+        f"Return ONLY a valid JSON array of 3 strings, nothing else.\n"
+        f"Query: {query}\n"
+        f'Example: ["Sub-question 1?", "Sub-question 2?", "Sub-question 3?"]'
+    )
+    decomp = await _query_model_smart("claude", COUNCIL_MODELS["claude"], decomp_prompt, "", 400)
+    sub_questions: list[str] = []
+    try:
+        resp_text = decomp.get("response", "")
+        match = re.search(r'\[.*?\]', resp_text, re.DOTALL)
+        if match:
+            sub_questions = json.loads(match.group())
+    except Exception:
+        pass
+    if not sub_questions:
+        sub_questions = [query]
+
+    # Step 2: Optional web fetch
+    web_context = ""
+    if urls:
+        headers = {"User-Agent": "Mozilla/5.0"}
+        async with httpx.AsyncClient(timeout=15, follow_redirects=True, headers=headers) as client:
+            for url in urls[:3]:
+                try:
+                    r = await client.get(url)
+                    soup = BeautifulSoup(r.text, "lxml")
+                    for tag in soup(["script", "style", "nav", "footer"]):
+                        tag.decompose()
+                    text = soup.get_text(separator="\n")[:2500]
+                    web_context += f"\n\n--- Source: {url} ---\n{text}"
+                except Exception:
+                    pass
+
+    # Step 3: Multi-AI research (parallel)
+    research_system = (
+        "You are an expert research analyst. Produce thorough, evidence-based analysis with "
+        "clear structure. Use ## headers and bullet points."
+    )
+    research_prompt = (
+        f"Research question: {query}\n\n"
+        f"Sub-questions to address:\n" +
+        "\n".join(f"{i+1}. {q}" for i, q in enumerate(sub_questions)) +
+        (f"\n\nWeb sources:\n{web_context[:3000]}" if web_context else "") +
+        "\n\nProvide a comprehensive research report with:\n"
+        "## Executive Summary\n## Key Findings\n## Detailed Analysis\n## Conclusions\n## Further Reading"
+    )
+
+    perspectives = list(await asyncio.gather(*[
+        _query_model_smart(name, mid, research_prompt, research_system, 2000)
+        for name, mid in COUNCIL_MODELS.items()
+    ]))
+
+    # Step 4: Final synthesis
+    persp_ctx = "\n\n".join(
+        f"**{r['model'].upper()} Research:**\n{r.get('response', 'Error')[:1500]}"
+        for r in perspectives
+    )
+    synth_prompt = (
+        f"Research query: {query}\n\n"
+        f"Three AI research perspectives:\n{persp_ctx}\n\n"
+        "Create the definitive research report by merging the best insights from all 3 perspectives. "
+        "Use proper ## headers, resolve any contradictions, and provide an authoritative synthesis."
+    )
+    synth_name = "gemini" if GEMINI_API_KEY else "claude"
+    synthesis = await _query_model_smart(
+        synth_name, COUNCIL_MODELS[synth_name], synth_prompt,
+        "You are a senior research synthesizer. Create the single best unified research report.",
+        3000,
+    )
+
+    return JSONResponse({
+        "query":         query,
+        "sub_questions": sub_questions,
+        "perspectives":  perspectives,
+        "synthesis":     synthesis.get("response", synthesis.get("error", "Error")),
+    })
 
 
 # ── WebSocket: sys metrics ────────────────────────────────────────────────────
@@ -852,13 +1054,10 @@ async def ws_pty(ws: WebSocket, model: str) -> None:
                 pass
             if session.is_alive():
                 session.write(raw)
-                # Gemini inline usage tracking (no frontend increment call for gemini)
                 if model == "gemini" and "\r" in raw and raw.strip():
                     _gemini_usage["daily_calls"]  += 1
                     _gemini_usage["weekly_calls"] += 1
                     _save_gemini_usage()
-                # NOTE: Claude usage is NOT tracked here — frontend calls
-                # /api/claude-usage/increment explicitly to avoid double-counting.
             else:
                 session = await _get_session(model)
     except WebSocketDisconnect:
@@ -870,9 +1069,59 @@ async def ws_pty(ws: WebSocket, model: str) -> None:
             await reader
         except asyncio.CancelledError:
             pass
-        # Sessions are kept alive for reconnects — no close() here.
-        import logging
-        logging.debug("[V.A.U.L.T.] ws_pty disconnected for model=%s; session kept alive.", model)
+
+
+# ── Gemini Embed Proxy ────────────────────────────────────────────────────────
+
+@app.get("/api/proxy")
+async def proxy_external(url: str, request: Request):
+    """Proxy external URLs with X-Frame-Options stripped for iframe embedding."""
+    from urllib.parse import urlparse
+    from fastapi.responses import Response as RawResponse
+
+    if not url.startswith(("http://", "https://")):
+        return JSONResponse({"error": "Only http/https URLs allowed"}, status_code=400)
+
+    try:
+        parsed = urlparse(url)
+        base_url = f"{parsed.scheme}://{parsed.netloc}"
+
+        async with httpx.AsyncClient(
+            follow_redirects=True,
+            timeout=15.0,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+            },
+        ) as client:
+            resp = await client.get(url)
+
+        strip_headers = {"x-frame-options", "content-security-policy", "x-xss-protection", "strict-transport-security"}
+        headers = {k: v for k, v in resp.headers.items() if k.lower() not in strip_headers}
+
+        ct = resp.headers.get("content-type", "text/html; charset=utf-8")
+        content = resp.content
+
+        # Inject <base> tag so relative URLs resolve to original domain
+        if "text/html" in ct:
+            try:
+                text = resp.text
+                base_tag = f'<base href="{base_url}/">'
+                if "<head>" in text.lower():
+                    idx = text.lower().index("<head>") + len("<head>")
+                    text = text[:idx] + base_tag + text[idx:]
+                else:
+                    text = base_tag + text
+                content = text.encode("utf-8")
+                headers["content-length"] = str(len(content))
+            except Exception:
+                pass
+
+        return RawResponse(content=content, status_code=resp.status_code, headers=headers, media_type=ct)
+
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=502)
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -896,7 +1145,6 @@ if __name__ == "__main__":
     print(BANNER)
 
     async def _startup():
-        # Pre-warm all three terminals so they're ready when browser opens
         await asyncio.sleep(0.5)
         for model in SPAWN_CMD:
             try:
