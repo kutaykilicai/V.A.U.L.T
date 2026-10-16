@@ -1,0 +1,259 @@
+:root {
+  --basalt: #12110f;
+  --panel: #1c1a16;
+  --inset: #161410;
+  --rule: #3a342c;
+  --paper: #ece6d8;
+  --dust: #b7ae9c;
+  --copper: #d4783a;
+  --copper-dim: #8a4e24;
+  --danger: #c45c4a;
+  --ok: #7ea36a;
+  --focus: #e8c07a;
+  --shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+  font-family: "Segoe UI", "Segoe UI Variable", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--basalt);
+  color: var(--paper);
+}
+
+body {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100%;
+}
+
+button, input, select {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: var(--copper);
+  color: var(--basalt);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.measure {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 18px 22px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule);
+  box-shadow: var(--shadow);
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+}
+
+.brand strong {
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.brand span {
+  color: var(--dust);
+  font-size: 0.82rem;
+}
+
+.track {
+  display: grid;
+  grid-template-columns: minmax(16rem, 1fr) 7.5rem 12rem auto;
+  gap: 8px;
+  align-items: end;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--dust);
+  font-size: 0.78rem;
+}
+
+input[type="text"], select {
+  height: 40px;
+  padding: 0 12px;
+  background: var(--inset);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+
+input[type="text"] { width: 100%; }
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) { border-color: var(--dust); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+button.primary {
+  background: var(--copper);
+  border-color: var(--copper);
+  color: #1a0f08;
+  font-weight: 650;
+}
+
+button.primary:hover:not(:disabled) { filter: brightness(1.06); }
+
+button.danger { border-color: var(--danger); color: #f0c9c2; }
+
+.stage {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) 220px;
+  min-height: 0;
+}
+
+.shaft {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 22px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.shaft button {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+}
+
+.grid-wrap {
+  min-height: 0;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+th, td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+th:not(:first-child), td:not(:first-child) { text-align: right; }
+
+th {
+  position: sticky;
+  top: 0;
+  background: var(--basalt);
+  color: var(--dust);
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: #221f19; }
+tbody tr.active { background: #2a2118; }
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 280px;
+}
+
+.name svg { flex: none; color: var(--copper); }
+
+.bar {
+  display: inline-block;
+  width: 72px;
+  height: 6px;
+  margin-right: 8px;
+  vertical-align: middle;
+  background: #2a261f;
+}
+
+.bar > i {
+  display: block;
+  height: 100%;
+  background: var(--copper);
+}
+
+.cut {
+  border-top: 1px solid var(--rule);
+  background: var(--panel);
+  position: relative;
+}
+
+.cut canvas {
+  display: block;
+  width: 100%;
+  height: 220px;
+}
+
+.hint {
+  position: absolute;
+  left: 16px;
+  bottom: 10px;
+  color: var(--dust);
+  font-size: 0.78rem;
+  pointer-events: none;
+}
+
+.status {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 22px;
+  background: var(--panel);
+  border-top: 1px solid var(--rule);
+  color: var(--dust);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  margin: 48px auto;
+  max-width: 36rem;
+  padding: 0 22px;
+  color: var(--dust);
+}
+
+.empty h1 {
+  margin: 0 0 10px;
+  color: var(--paper);
+  font-size: 1.7rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.empty p { margin: 0; line-height: 1.5; }
+
+.error {
+  color: var(--danger);
+}

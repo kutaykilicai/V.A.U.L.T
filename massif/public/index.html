@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Massif</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="measure">
+      <div class="brand">
+        <strong>Massif</strong>
+        <span>Yerel disk kütlesi</span>
+      </div>
+      <form class="track" id="scan-form">
+        <label>
+          Yol
+          <input id="path" type="text" spellcheck="false" autocomplete="off" />
+        </label>
+        <label>
+          Birim
+          <select id="unit">
+            <option value="auto">Otomatik</option>
+            <option value="B">Bayt</option>
+            <option value="KB">KB</option>
+            <option value="MB">MB</option>
+            <option value="GB">GB</option>
+            <option value="TB">TB</option>
+          </select>
+        </label>
+        <label>
+          Görünüm
+          <select id="empty-folders">
+            <option value="hide">Boş klasörleri gizle</option>
+            <option value="show">Boş klasörleri göster</option>
+          </select>
+        </label>
+        <div class="actions">
+          <button class="primary" id="scan" type="submit">Tara</button>
+          <button id="stop" type="button" disabled>Durdur</button>
+          <button id="export-csv" type="button" disabled>CSV</button>
+          <button id="export-html" type="button" disabled>HTML</button>
+        </div>
+      </form>
+    </header>
+
+    <main class="stage">
+      <nav class="shaft" id="shaft" hidden></nav>
+      <div class="grid-wrap" id="grid-wrap">
+        <div class="empty" id="empty">
+          <h1>Bir yol seç, kütleyi gör.</h1>
+          <p>
+            Massif seçtiğin klasörü tarar; çocukların kapladığı alanı tablo ve
+            kesitte gösterir. Tüm C: sürücüsünü kendiliğinden taramaz.
+          </p>
+        </div>
+        <table id="grid" hidden>
+          <thead>
+            <tr>
+              <th data-sort="name">Ad</th>
+              <th data-sort="size">Boyut</th>
+              <th data-sort="percent">Pay</th>
+              <th data-sort="files">Dosya</th>
+              <th data-sort="folders">Klasör</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <section class="cut">
+        <canvas id="treemap"></canvas>
+        <div class="hint" id="cut-hint"></div>
+      </section>
+    </main>
+
+    <footer class="status">
+      <span id="status-left">Hazır</span>
+      <span id="status-right"></span>
+    </footer>
+    <script src="/app.js"></script>
+  </body>
+</html>
